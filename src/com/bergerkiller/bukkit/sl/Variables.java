@@ -7,8 +7,11 @@ import org.bukkit.block.Block;
 public class Variables {
 	private static HashMap<String, Variable> variables = new HashMap<String, Variable>();
 	
+	public static void update(boolean forced) {
+		VirtualSign.updateAll(forced);
+	}
 	public static void update() {
-		VirtualSign.updateAll();
+		update(false);
 	}
 	
 	public static void updateSignOrder() {

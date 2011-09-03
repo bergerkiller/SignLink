@@ -16,7 +16,9 @@ public class SLBlockListener extends BlockListener {
 				if (varname != null) {
 					if (allowvar) {
 						VirtualSign.add(event.getBlock(), event.getLines());
-						Variables.get(varname).addLocation(event.getBlock(), i);
+						Variable var = Variables.get(varname);
+						var.addLocation(event.getBlock(), i);
+						var.update(1);
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You made a sign linking to variable: " + varname);
 					} else {
 						event.getPlayer().sendMessage(ChatColor.DARK_RED + "You don't have permission to use dynamic text on signs!");
@@ -27,7 +29,7 @@ public class SLBlockListener extends BlockListener {
 			Variables.updateSignOrder();
 		}
 	}
-	
+		
 	@Override
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (!event.isCancelled()) {

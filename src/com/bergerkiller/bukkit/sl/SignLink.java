@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.sl;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.logging.Level;
 
 import org.bukkit.command.Command;
@@ -10,6 +11,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.config.Configuration;
 
 import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 
@@ -69,19 +71,83 @@ public class SignLink extends JavaPlugin {
 			}
 		}
 
-		//General %time% update thread
-		getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
+		//General %time% and %date% update thread
+		timetask = new Task(this) {
 			public void run() {
-				Variables.set("time", Util.now("H:mm:ss")).update();
+				Variable timevar = Variables.set("time", Util.now("H:mm:ss"));
 				Variables.set("date", Util.now("yyyy.MM.dd")).update();
+				timevar.update();
 			}
-		}, 10, 5);
+		};
+		timetask.startRepeating(10, 5, false);
 		
+		//Load tickers
+		File values = new File(this.getDataFolder() + File.separator + "values.yml");
+		boolean generate = !values.exists();
+		Configuration config = new Configuration(values);
+		if (generate) {
+			config.setHeader("# In here you can set default values for this plugin.",
+					"# The ticker property can be LEFT, RIGHT or NONE and sets the direction message is 'ticked'.", 
+					"# tickerInterval sets the amount of ticks (1/20 of a second) are between the ticker update.", 
+					"# The value is the thing to display or tick.", 
+					"# To use colors in your text, use the § sign followed up by a value from 0 - F.", 
+					"# Example: §cRed to display a red colored 'Red' message.", 
+					"# You can find all color codes on the internet (they may use & there, ignore that!)");
+			
+			config.setProperty("test.ticker", "LEFT");
+			config.setProperty("test.tickerInterval", 3);
+			config.setProperty("test.value", "This is a test message being ticked from right to left. ");
+			config.setProperty("sign.ticker", "NONE");
+			config.setProperty("sign.value", "This is a regular message you can set and is updated only once.");
+			config.save();
+		}
+		ArrayList<Ticker> tickers = new ArrayList<Ticker>();
+		config.load();
+		for (String key : config.getKeys()) {
+			String tickmode = config.getString(key + ".ticker", "NONE");
+			byte mode = 0;
+			if (tickmode.equalsIgnoreCase("LEFT")) {
+				mode = 2;
+			} else if (tickmode.equalsIgnoreCase("RIGHT")) {
+				mode = 1;
+			}
+			int interval = config.getInt(key + ".tickerInterval", 1);
+			String message = config.getString(key + ".value", "None");
+			tickers.add(new Ticker(key, message, interval, mode));
+		}
+		//Start tickers
+		tickertask = new Task(this, tickers, new ArrayList<Variable>()) {
+			@SuppressWarnings("unchecked")
+			public void run() {
+				ArrayList<Ticker> tickers = (ArrayList<Ticker>) getArg(0);
+				if (tickers.size() == 0) return;
+				ArrayList<Variable> vars = (ArrayList<Variable>) getArg(1);
+				if (vars.size() == 0) {
+					for (Ticker ticker : tickers) {
+						vars.add(Variables.get(ticker.varname));
+					}
+				}
+				//Actual stuff here
+				for (int i = 0; i < vars.size(); i++) {
+					vars.get(i).setValue(tickers.get(i).getNext());
+				}
+				for (Variable var : vars) var.update();
+			}
+		};
+		tickertask.startRepeating(1);
 		
 		Util.log(Level.INFO, " version " + this.getDescription().getVersion() + " is enabled!");
 	}
+	
+	private Task timetask;
+	private Task tickertask;
 		
 	public void onDisable() {
+		Task.stop(timetask);
+		Task.stop(tickertask);
+		
+		updateSigns = false;
+		
 		VirtualSign.restoreAll();
 		
 		//Save sign locations to file

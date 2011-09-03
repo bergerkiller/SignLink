@@ -14,11 +14,9 @@ public class Variable {
 		return this.value;
 	}
 	public void setValue(String value) {
-		if (!value.equals(this.value)) {
-			this.value = value;
-			for (LinkedSign sign : getSigns()) {
-				sign.setText(value);
-			}
+		this.value = value;
+		for (LinkedSign sign : getSigns()) {
+			sign.setText(value);
 		}
 	}
 	
@@ -34,8 +32,19 @@ public class Variable {
 	
 	public void update() {
 		for (LinkedSign sign : getSigns()) {
-			sign.update();
+			sign.update(false);
 		}
+	}
+	
+
+	public void update(long delay) {
+		Task t = new Task(SignLink.plugin, this) {
+			public void run() {
+				Variable var = (Variable) getArg(0);
+				var.update();
+			}
+		};
+		t.startDelayed(delay);
 	}
 	
 	private ArrayList<LinkedSign> boundTo = new ArrayList<LinkedSign>();

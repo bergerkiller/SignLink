@@ -50,6 +50,7 @@ public class LinkedSign {
 	
 	public enum Direction {LEFT, RIGHT, NONE}
 	
+	public String lasttext;
 	public String worldname;
 	public int x;
 	public int y;
@@ -60,6 +61,7 @@ public class LinkedSign {
 	private ArrayList<VirtualSign> prevSigns = new ArrayList<VirtualSign>();
 	
 	public void setText(String value) {	
+		if (this.lasttext != null && this.lasttext.equals(value)) return;
 		if (!SignLink.updateSigns) return; 
 		ArrayList<VirtualSign> signs = getSigns();
 		if (signs == null) return;
@@ -151,15 +153,16 @@ public class LinkedSign {
 			}
 			sign.setLine(this.line, line);
 			index++;
-			if (index == bits.size() - 1) bits.add("               ");
+			if (index == bits.size() - 1) break;
 		}
+		lasttext = value;
 	}
 
-	public void update() {
+	public void update(boolean forced) {
 		ArrayList<VirtualSign> signs = getSigns();
 		if (signs != null) {
 			for (VirtualSign sign : signs) {
-				sign.update();
+				sign.update(forced);
 			}
 		}
 	}

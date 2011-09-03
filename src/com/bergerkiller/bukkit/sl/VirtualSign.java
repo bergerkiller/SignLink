@@ -96,11 +96,11 @@ public class VirtualSign {
 		for (int i = 0;i < 4;i++) {
 			this.setLine(i, this.oldlines[i]);
 		}
-		this.update();
+		this.update(true);
 	}
-	public boolean update() {
+	public boolean update(boolean forced) {
 		if (this.isValid()) {
-			if (this.changed) {
+			if (this.changed || forced) {
 				sign.update();
 				this.changed = false;
 			}
@@ -110,10 +110,10 @@ public class VirtualSign {
 			return false;
 		}
 	}
-	public static void updateAll() {
+	public static void updateAll(boolean forced) {
 		for (VirtualSign sign : virtualSigns.values()) {
-			if (!sign.update()) {
-				updateAll();
+			if (!sign.update(forced)) {
+				updateAll(forced);
 				return;
 			}
 		}
