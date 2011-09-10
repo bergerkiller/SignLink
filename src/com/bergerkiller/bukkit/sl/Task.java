@@ -15,6 +15,10 @@ public class Task implements Runnable {
         this.plugin = plugin;
         this.arguments = arguments;
     }
+    public Task(Object... arguments) {
+    	this.plugin = SignLink.plugin;
+    	this.arguments = arguments;
+    }
 
     public JavaPlugin getPlugin() {
         return this.plugin;

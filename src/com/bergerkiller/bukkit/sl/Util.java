@@ -5,12 +5,16 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.minecraft.server.Packet;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.material.Directional;
 
 public class Util {
@@ -31,8 +35,56 @@ public class Util {
 	public static BlockFace getFacing(Block block) {
 		return ((Directional) block.getType().getNewData(block.getData())).getFacing();
 	}
+	public static void setFacing(Block block, BlockFace facing) {
+		org.bukkit.material.Sign sign = new org.bukkit.material.Sign();
+		sign.setFacingDirection(facing);
+		block.setData(sign.getData(), true);
+	}
+	
+	public static String replaceColors(String line) {
+		int index = 0;
+		while (true) {
+			index = line.indexOf('&', index);
+			if (index >= 0 && index < line.length() - 1) {
+				char next = line.charAt(index + 1);
+				if (next == '0' || next == '1' || next == '2' || next == '3' || next == '4' ||
+						next == '5' || next == '6' || next == '7' || next == '8' || next == '9' ||
+						next == 'a' || next == 'b' || next == 'c' || next == 'd' || next == 'e' || next == 'f') {
+					line = line.substring(0, index) + '§' + line.substring(index + 1);
+				}
+				index++;
+			} else {
+				break;
+			}
+		}
+		return line;
+	}
+	public static String[] replaceColors(String... lines) {
+		for (int i = 0; i < lines.length; i++) {
+			lines[i] = replaceColors(lines[i]);
+		}
+		return lines;
+	}
+	
 	public static Sign getSign(Block b) {
 		return (Sign) b.getState();
+	}
+	
+	public static void delay(Runnable runnable, long delay) {
+		SignLink.plugin.getServer().getScheduler().scheduleSyncDelayedTask(SignLink.plugin, runnable, delay);
+	}
+	
+	public static void sendPacket(Player player, Packet packet) {
+		((CraftPlayer) player).getHandle().netServerHandler.sendPacket(packet);
+	}
+	
+	public static void hideBlock(Block b, Player forPlayer) {
+		forPlayer.sendBlockChange(b.getLocation(), 0, (byte) 0);
+	}
+	public static void hideBlock(Block b) {
+		for (Player p : b.getWorld().getPlayers()) {
+			hideBlock(b, p);
+		}
 	}
 	
 	public static boolean isLoaded(Block b) {

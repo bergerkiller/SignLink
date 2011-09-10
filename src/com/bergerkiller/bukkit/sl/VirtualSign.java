@@ -6,7 +6,10 @@ import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
+
+import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class VirtualSign {
 	private static HashMap<BlockLocation, VirtualSign> virtualSigns = new HashMap<BlockLocation, VirtualSign>();
@@ -60,9 +63,15 @@ public class VirtualSign {
 	private String[] oldlines;
 	
 	public void setLine(int index, String line) {
+		setLine(index, line, false);
+	}
+	public void setLine(int index, String line, boolean setRealLine) {
 		if (!this.sign.getLine(index).equals(line)) {
 			this.sign.setLine(index, line);
 			changed = true;
+		}
+		if (setRealLine) {
+			this.oldlines[index] = line;
 		}
 	}
 	public String getLine(int index) {
@@ -71,6 +80,9 @@ public class VirtualSign {
 	}
 	public String getVirtualLine(int index) {
 		return this.sign.getLine(index);
+	}
+	public BlockFace getFacing() {
+		return Util.getFacing(this.getBlock());
 	}
 	public Block getBlock() {
 		return this.sign.getBlock();
@@ -81,7 +93,7 @@ public class VirtualSign {
 	public World getWorld() {
 		return this.sign.getWorld();
 	}
-	
+
 	public void remove() {
 		for (Map.Entry<BlockLocation, VirtualSign> entry : virtualSigns.entrySet()) {
 			if (entry.getValue() == this) {

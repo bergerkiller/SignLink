@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.sl;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.command.Command;
@@ -13,12 +14,15 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
 
+import com.bergerkiller.bukkit.sl.API.Variable;
+import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 
 public class SignLink extends JavaPlugin {
 	public static SignLink plugin;
 	
 	public static boolean updateSigns = true;
+	public static boolean allowSignEdit = true;
 
 	private SLBlockListener blockListener = new SLBlockListener();
 	
@@ -27,6 +31,7 @@ public class SignLink extends JavaPlugin {
 		PluginManager pm = this.getServer().getPluginManager();
 		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
 				
 		getCommand("togglesignupdate").setExecutor(this);
 		
@@ -90,9 +95,9 @@ public class SignLink extends JavaPlugin {
 					"# The ticker property can be LEFT, RIGHT or NONE and sets the direction message is 'ticked'.", 
 					"# tickerInterval sets the amount of ticks (1/20 of a second) are between the ticker update.", 
 					"# The value is the thing to display or tick.", 
-					"# To use colors in your text, use the § sign followed up by a value from 0 - F.", 
-					"# Example: §cRed to display a red colored 'Red' message.", 
-					"# You can find all color codes on the internet (they may use & there, ignore that!)");
+					"# To use colors in your text, use the § or & sign followed up by a value from 0 - F.", 
+					"# Example: §cRed and &cRed to display a red colored 'Red' message.", 
+					"# You can find all color codes on the internet");
 			
 			config.setProperty("test.ticker", "LEFT");
 			config.setProperty("test.tickerInterval", 3);
@@ -113,7 +118,17 @@ public class SignLink extends JavaPlugin {
 			}
 			int interval = config.getInt(key + ".tickerInterval", 1);
 			String message = config.getString(key + ".value", "None");
-			tickers.add(new Ticker(key, message, interval, mode));
+			List<Integer> delays = config.getIntList(key + ".pauseDelays", new ArrayList<Integer>());
+			List<Integer> durations = config.getIntList(key + ".pauseDurations", new ArrayList<Integer>());
+			Ticker t = new Ticker(key, message, interval, mode);
+			if (delays.size() == durations.size()) {
+				for (int i = 0; i < delays.size(); i++) {
+					int delay = delays.get(i);
+					int duration = durations.get(i);
+					t.addPause(delay, duration);
+				}
+			}
+			tickers.add(t);
 		}
 		//Start tickers
 		tickertask = new Task(this, tickers, new ArrayList<Variable>()) {
