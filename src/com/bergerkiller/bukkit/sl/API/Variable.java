@@ -1,38 +1,82 @@
 package com.bergerkiller.bukkit.sl.API;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.sl.LinkedSign;
-import com.bergerkiller.bukkit.sl.SignLink;
-import com.bergerkiller.bukkit.sl.Task;
 
 public class Variable {
+	private String defaultvalue;
+	private String name;
+	private ArrayList<LinkedSign> boundTo = new ArrayList<LinkedSign>();
+	private HashMap<String, String> playervalues = new HashMap<String, String>();
+	
 	public Variable(String value, String name) {
-		this.value = value;
+		this.defaultvalue = value;
 		this.name = name;
 	}
-	
-	private String value;
-	private String name;
 	
 	public String getName() {
 		return this.name;
 	}
-	public String getValue() {
-		return this.value;
+	public String get() {
+		return this.defaultvalue;
 	}
-	public void setValue(String value) {
-		VariableChangeEvent event = new VariableChangeEvent(this, value);
+	public String get(String player) {
+		String val = playervalues.get(player);
+		if (val == null) return this.get();
+		return val;
+	}
+	
+	public void set(String value) {
+		VariableChangeEvent event = new VariableChangeEvent(this, value, null);
 		Bukkit.getServer().getPluginManager().callEvent(event);
 		if (!event.isCancelled()) {
-			this.value = event.getNewValue();
+			this.defaultvalue = event.getNewValue();
 			for (LinkedSign sign : getSigns()) {
-				sign.setText(this.value);
+				sign.setText(this.defaultvalue);
 			}
 		}
+	}
+	public void set(String value, String[] players) {
+		VariableChangeEvent event = new VariableChangeEvent(this, value, players);
+		Bukkit.getServer().getPluginManager().callEvent(event);
+		if (!event.isCancelled()) {
+			for (String player : players) {
+				playervalues.put(player, value);
+			}
+			for (LinkedSign sign : getSigns()) {
+				sign.setText(value, players);
+			}
+		}
+	}
+	public void resetValue(String... players) {
+		set(defaultvalue, players);
+	}
+	public void updateAll() {
+		set(defaultvalue);
+		String[] tmparr = new String[0];
+		for (Map.Entry<String, String> entry : playervalues.entrySet()) {
+			tmparr[0] = entry.getKey();
+			set(entry.getValue(), tmparr);
+		}
+	}
+	
+	public PlayerVariable forPlayers(String... playernames) {
+		return new PlayerVariable(this, playernames);
+	}
+	public PlayerVariable forPlayers(Player... players) {
+		String[] names = new String[players.length];
+		for (int i = 0; i < players.length; i++) {
+			names[i] = players[i].getName();
+		}
+		return forPlayers(names);
 	}
 	
 	public void updateSignOrder() {
@@ -40,29 +84,10 @@ public class Variable {
 			sign.updateSignOrder();
 		}
 	}
-	
 	public LinkedSign[] getSigns() {
 		return this.boundTo.toArray(new LinkedSign[0]);
-	}
-	
-	public void update() {
-		for (LinkedSign sign : getSigns()) {
-			sign.update(false);
-		}
-	}
-	
-	public void update(long delay) {
-		Task t = new Task(SignLink.plugin, this) {
-			public void run() {
-				Variable var = (Variable) getArg(0);
-				var.update();
-			}
-		};
-		t.startDelayed(delay);
-	}
-	
-	private ArrayList<LinkedSign> boundTo = new ArrayList<LinkedSign>();
-	
+	}	
+
 	public boolean addLocation(String worldname, int x, int y, int z, int lineAt, LinkedSign.Direction direction) {
 		return addLocation(new LinkedSign(worldname, x, y, z, lineAt, direction));
 	}
@@ -74,6 +99,7 @@ public class Variable {
 		Bukkit.getServer().getPluginManager().callEvent(event);
 		if (!event.isCancelled()) {
 			boundTo.add(sign);
+			sign.update(true);
 			return true;
 		} else {
 			return false;
@@ -97,4 +123,20 @@ public class Variable {
 		}
 	}
 		
+	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
+		return find(signs, variables, at.getLocation());
+	}
+	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
+		boolean found = false;
+		for (LinkedSign sign : boundTo) {
+			if (sign.x == at.getBlockX() && sign.y == at.getBlockY() && sign.z == at.getBlockZ()) {
+				if (sign.worldname == at.getWorld().getName()) {
+					found = true;
+					if (signs != null) signs.add(sign);
+					if (variables != null) variables.add(this);
+				}
+			}
+		}
+		return found;
+	}
 }

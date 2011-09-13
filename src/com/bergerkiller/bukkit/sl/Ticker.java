@@ -2,9 +2,6 @@ package com.bergerkiller.bukkit.sl;
 
 import java.util.ArrayList;
 
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-
 public class Ticker {
 	public Ticker(String varname, String text, long interval, byte mode) {
 		this.varname = varname;

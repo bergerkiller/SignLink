@@ -1,16 +1,22 @@
 name: SignLink
 main: com.bergerkiller.bukkit.sl.SignLink
-version: 1.01
+version: 1.03
 author: bergerkiller
 description: Plugin that manages the display of variables on signs in various ways
 commands:
     togglesignupdate:
         description: Turns sign updating on or off
         usage: /togglesignsupdate
+    reloadsignlink:
+        description: Reloads the variable values in values.yml
+        usage: /reloadsignlink
 permissions:
     signlink.addsign:
         description: Allows you to build signs containing variables
         default: op
     signlink.toggleupdate:
         description: Allows you to set if signs are being updated or not
+        default: op
+    signlink.reload:
+        description: Allows you to reload the values.yml
         default: op

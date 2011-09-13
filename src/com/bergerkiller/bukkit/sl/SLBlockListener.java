@@ -8,7 +8,6 @@ import net.minecraft.server.Packet130UpdateSign;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
@@ -40,7 +39,7 @@ public class SLBlockListener extends BlockListener {
 					//Get the required info
 					String[] lines = new String[4];
 					for (int i = 0; i < 4; i++) {
-						lines[i] = sign.getLine(i).replace('§', '&');
+						lines[i] = sign.getRealLine(i).replace('§', '&');
 					}
 							
 					//Hide the old sign from the user
@@ -76,7 +75,7 @@ public class SLBlockListener extends BlockListener {
 					//No permission to edit
 					event.setCancelled(true);
 				}
-			}			
+			}
 		}
 	}
 	
@@ -100,8 +99,9 @@ public class SLBlockListener extends BlockListener {
 				b = alternative.getBlock();
 				if (Util.isSign(b)) {
 					//We need to target another sign...
-					Sign sign = Util.getSign(b);
+					VirtualSign sign = VirtualSign.get(b);
 					for (int i = 0; i < 4; i++) {
+						sign.setRealLine(i, event.getLine(i));
 						sign.setLine(i, event.getLine(i));
 					}
 					sign.update(true);
@@ -120,7 +120,6 @@ public class SLBlockListener extends BlockListener {
 						VirtualSign.add(b, event.getLines());
 						Variable var = Variables.get(varname);
 						var.addLocation(b, i);
-						var.update(1);
 						event.getPlayer().sendMessage(ChatColor.GREEN + "You made a sign linking to variable: " + varname);
 					} else {
 						event.getPlayer().sendMessage(ChatColor.DARK_RED + "You don't have permission to use dynamic text on signs!");

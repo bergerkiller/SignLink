@@ -5,6 +5,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 public class BlockLocation {
+	
 	public BlockLocation(Location l) {
 		this.world = l.getWorld();
 		this.x = l.getBlockX();
@@ -16,9 +17,15 @@ public class BlockLocation {
 		this.x = b.getLocation().getBlockX();
 		this.y = b.getLocation().getBlockY();
 		this.z = b.getLocation().getBlockZ();
+	}	
+    public BlockLocation(World world, int x, int y, int z) {
+    	this.world = world;
+    	this.x = x;
+    	this.y = y;
+    	this.z = z;
 	}
-	
-    public World world;
+
+	public World world;
     public int x;
     public int y;
     public int z;

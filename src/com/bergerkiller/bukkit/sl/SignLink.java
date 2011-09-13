@@ -21,71 +21,13 @@ import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 public class SignLink extends JavaPlugin {
 	public static SignLink plugin;
 	
-	public static boolean updateSigns = true;
+	public static boolean updateSigns = false;
 	public static boolean allowSignEdit = true;
 
 	private SLBlockListener blockListener = new SLBlockListener();
+	private SLPlayerListener playerListener = new SLPlayerListener();
 	
-	public void onEnable() {
-		plugin = this;
-		PluginManager pm = this.getServer().getPluginManager();
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
-				
-		getCommand("togglesignupdate").setExecutor(this);
-		
-		//Load sign locations from file
-		Variable currvar = null;
-		for (String textline : SafeReader.readAll(this.getDataFolder() + File.separator + "linkedsigns.txt")) {
-			if (textline.startsWith("#")) continue;
-			try {
-				if (currvar != null && textline.startsWith("\t")) {
-				    int namestart = textline.indexOf("\"");
-				    if (namestart != -1) {
-				    	int nameend = textline.indexOf("\"", namestart + 1);
-				    	if (namestart != nameend && nameend != -1) {
-				    		String worldname = textline.substring(namestart + 1, nameend);
-				    		String[] args = textline.substring(nameend + 1).trim().split(" ");
-				    		if (args.length == 5) {
-				    			int x = Integer.parseInt(args[0]);
-				    			int y = Integer.parseInt(args[1]);
-				    			int z = Integer.parseInt(args[2]);
-				    			int line = Integer.parseInt(args[3]);
-				    			Direction direction = Direction.NONE;
-				    			if (args[4].equalsIgnoreCase("LEFT")) {
-				    				direction = Direction.LEFT;
-				    			} else if (args[4].equalsIgnoreCase("RIGHT")) {
-				    				direction = Direction.RIGHT;
-				    			}
-				    			if (line >= 0 && line < 4) {
-					    			currvar.addLocation(worldname, x, y, z, line, direction);
-				    			} else {
-				    				Util.log(Level.WARNING, "Failed to parse line: " + textline);
-				    				Util.log(Level.WARNING, "Line index out of range: " + line);
-				    			}
-				    		}
-				    	}
-				    }
-				} else {
-					currvar = Variables.get(textline);
-				}
-			} catch (Exception ex) {
-				Util.log(Level.WARNING, "Failed to parse line: " + textline);
-				ex.printStackTrace();
-			}
-		}
-
-		//General %time% and %date% update thread
-		timetask = new Task(this) {
-			public void run() {
-				Variable timevar = Variables.set("time", Util.now("H:mm:ss"));
-				Variables.set("date", Util.now("yyyy.MM.dd")).update();
-				timevar.update();
-			}
-		};
-		timetask.startRepeating(10, 5, false);
-		
+	public void loadValues() {
 		//Load tickers
 		File values = new File(this.getDataFolder() + File.separator + "values.yml");
 		boolean generate = !values.exists();
@@ -130,6 +72,10 @@ public class SignLink extends JavaPlugin {
 			}
 			tickers.add(t);
 		}
+		if (tickertask != null && tickertask.isRunning()) {
+			tickertask.stop();
+		}
+		
 		//Start tickers
 		tickertask = new Task(this, tickers, new ArrayList<Variable>()) {
 			@SuppressWarnings("unchecked")
@@ -144,26 +90,98 @@ public class SignLink extends JavaPlugin {
 				}
 				//Actual stuff here
 				for (int i = 0; i < vars.size(); i++) {
-					vars.get(i).setValue(tickers.get(i).getNext());
+					vars.get(i).set(tickers.get(i).getNext());
 				}
-				for (Variable var : vars) var.update();
 			}
 		};
 		tickertask.startRepeating(1);
+	}
+	
+	public void onEnable() {
+		plugin = this;
+		PluginManager pm = this.getServer().getPluginManager();
+		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
+
+		getCommand("togglesignupdate").setExecutor(this);
+		getCommand("reloadsignlink").setExecutor(this);
+		
+		//Load sign locations from file
+		Variable currvar = null;
+		for (String textline : SafeReader.readAll(this.getDataFolder() + File.separator + "linkedsigns.txt")) {
+			if (textline.startsWith("#")) continue;
+			try {
+				if (currvar != null && textline.startsWith("\t")) {
+				    int namestart = textline.indexOf("\"");
+				    if (namestart != -1) {
+				    	int nameend = textline.indexOf("\"", namestart + 1);
+				    	if (namestart != nameend && nameend != -1) {
+				    		String worldname = textline.substring(namestart + 1, nameend);
+				    		String[] args = textline.substring(nameend + 1).trim().split(" ");
+				    		if (args.length == 5) {
+				    			int x = Integer.parseInt(args[0]);
+				    			int y = Integer.parseInt(args[1]);
+				    			int z = Integer.parseInt(args[2]);
+				    			int line = Integer.parseInt(args[3]);
+				    			Direction direction = Direction.NONE;
+				    			if (args[4].equalsIgnoreCase("LEFT")) {
+				    				direction = Direction.LEFT;
+				    			} else if (args[4].equalsIgnoreCase("RIGHT")) {
+				    				direction = Direction.RIGHT;
+				    			}
+				    			if (line >= 0 && line < 4) {
+					    			currvar.addLocation(worldname, x, y, z, line, direction);
+				    			} else {
+				    				Util.log(Level.WARNING, "Failed to parse line: " + textline);
+				    				Util.log(Level.WARNING, "Line index out of range: " + line);
+				    			}
+				    		}
+				    	}
+				    }
+				} else {
+					currvar = Variables.get(textline);
+				}
+			} catch (Exception ex) {
+				Util.log(Level.WARNING, "Failed to parse line: " + textline);
+				ex.printStackTrace();
+			}
+		}
+		
+		//General %time% and %date% update thread
+		timetask = new Task(this) {
+			public void run() {
+				Variables.get("time").set(Util.now("H:mm:ss"));
+				Variables.get("date").set(Util.now("yyyy.MM.dd"));
+			}
+		};
+		timetask.startRepeating(10, 5, false);
+		
+		loadValues();
+		
+		//Start updating
+		updatetask = new Task(this) {
+			public void run() {
+				VirtualSign.updateAll();
+			}
+		};
+		updatetask.startRepeating(1L);
+		
+		updateSigns = true;
 		
 		Util.log(Level.INFO, " version " + this.getDescription().getVersion() + " is enabled!");
 	}
 	
+	private Task updatetask;
 	private Task timetask;
 	private Task tickertask;
 		
 	public void onDisable() {
 		Task.stop(timetask);
 		Task.stop(tickertask);
-		
-		updateSigns = false;
-		
-		VirtualSign.restoreAll();
+		Task.stop(updatetask);
 		
 		//Save sign locations to file
 		SafeWriter writer = new SafeWriter(this.getDataFolder() + File.separator + "linkedsigns.txt");
@@ -191,15 +209,22 @@ public class SignLink extends JavaPlugin {
 	}
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String cmdLabel, String[] args) {
-		if (!(sender instanceof Player) || ((Player) sender).hasPermission("signlink.toggleupdate")) {
-			updateSigns = !updateSigns;
-			if (updateSigns) {
-				sender.sendMessage("Signs are now being updated!");
-			} else {
-				sender.sendMessage("Signs are now no longer being updated!");
+		if (cmdLabel.equalsIgnoreCase("togglesignupdate")) {
+			if (!(sender instanceof Player) || ((Player) sender).hasPermission("signlink.toggleupdate")) {
+				updateSigns = !updateSigns;
+				if (updateSigns) {
+					sender.sendMessage("Signs are now being updated!");
+				} else {
+					sender.sendMessage("Signs are now no longer being updated!");
+				}
+			}
+		} else if (cmdLabel.equalsIgnoreCase("reloadsignlink")) {
+			if (!(sender instanceof Player) || ((Player) sender).hasPermission("signlink.reload")) {
+				loadValues();
+				sender.sendMessage("SignLink reloaded the Variable values");
 			}
 		}
-		return true;
+ 		return true;
 	}
 	
 }

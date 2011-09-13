@@ -9,12 +9,14 @@ public class VariableChangeEvent extends Event implements Cancellable {
 	private String oldvalue;
 	private String newvalue;
 	private Variable variable;
+	private String[] players;
 
-	public VariableChangeEvent(Variable variable, String newvalue) {
+	public VariableChangeEvent(Variable variable, String newvalue, String[] players) {
 		super("VariableChangeEvent");
-		this.oldvalue = variable.getValue();
+		this.oldvalue = variable.get();
 		this.variable = variable;
 		this.newvalue = newvalue;
+		this.players = players;
 	}
 	
 	public String getOldValue() {
@@ -28,6 +30,12 @@ public class VariableChangeEvent extends Event implements Cancellable {
 	}
 	public Variable getVariable() {
 		return this.variable;
+	}
+	public String[] getPlayers() {
+		return this.players;
+	}
+	public boolean isGlobalChange() {
+		return this.players == null;
 	}
 
 	@Override

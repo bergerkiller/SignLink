@@ -29,7 +29,7 @@ public class LinkedSign {
 		this.direction = Direction.NONE;
 		if (Util.isSign(from)) {
 			VirtualSign sign = VirtualSign.get(from);
-			String text = sign.getLine(line);
+			String text = sign.getRealLine(line);
 			int peri = text.indexOf("%");
 			if (peri != -1) {
 				if (text.lastIndexOf("%") == peri) {
@@ -50,7 +50,6 @@ public class LinkedSign {
 	
 	public enum Direction {LEFT, RIGHT, NONE}
 	
-	public String lasttext;
 	public String worldname;
 	public int x;
 	public int y;
@@ -58,20 +57,34 @@ public class LinkedSign {
 	public int line;
 	private boolean updateSignOrder = false;
 	public Direction direction;
+	private String oldtext;
 	private ArrayList<VirtualSign> prevSigns = new ArrayList<VirtualSign>();
 	
-	public void setText(String value) {	
-		if (this.lasttext != null && this.lasttext.equals(value)) return;
+	public void updateText(String... forplayers){
+		setText(this.oldtext, forplayers);
+	}
+	public void setText(String value, String... forplayers) {	
+		oldtext = value;
 		if (!SignLink.updateSigns) return; 
 		ArrayList<VirtualSign> signs = getSigns();
-		if (signs == null) return;
+		if (signs == null || signs.size() == 0) return;
 		//Get the start offset
-		int startoffset = signs.get(0).getLine(this.line).indexOf("%");
+		String startline = signs.get(0).getRealLine(this.line);
+		int startoffset = startline.indexOf("%");
 		if (startoffset == -1) startoffset = 0;
 		int maxlength = 15 - startoffset;
 				
-		ArrayList<String> bits = new ArrayList<String>();
+		//Get the color of the text before this variable
 		ChatColor color = ChatColor.BLACK;
+		for (int i = 0; i < startoffset; i++) {
+			if (startline.charAt(i) == '§') {
+				i++;
+				color = Util.getColor(startline.charAt(i), color);
+			}
+		}
+		
+		
+		ArrayList<String> bits = new ArrayList<String>();
 		ChatColor prevcolor = color;
 		String lastbit = "";
 		for (int i = 0;i < value.length(); i++) {
@@ -79,7 +92,7 @@ public class LinkedSign {
 			if (c == '§') {
 				if (i < value.length() - 1) {
 					i++;
-					color = Util.getColor(value.charAt(i));
+					color = Util.getColor(value.charAt(i), color);
 				}
 			} else {
 				if (prevcolor != color) {
@@ -113,7 +126,7 @@ public class LinkedSign {
 		//Set the signs
 		int index = 0;
 		for (VirtualSign sign : signs) {
-			String line = sign.getLine(this.line);
+			String line = sign.getRealLine(this.line);
 			if (index == 0 && signs.size() == 1) {
 				//set the value in between the two % %
 				String start = line.substring(0, startoffset);
@@ -151,11 +164,10 @@ public class LinkedSign {
 				//A sign in the middle, simply set it
 				line = bits.get(index);
 			}
-			sign.setLine(this.line, line);
+			sign.setLine(this.line, line, forplayers);
 			index++;
 			if (index == bits.size() - 1) break;
 		}
-		lasttext = value;
 	}
 
 	public void update(boolean forced) {
@@ -226,13 +238,18 @@ public class LinkedSign {
 			prevSigns = new ArrayList<VirtualSign>();
 			prevSigns.add(VirtualSign.get(start));
 			if (this.direction == Direction.NONE) return prevSigns;
+			boolean end = false; //If we found a test% or %test variable
 			while (true) {
 				//Check for next signs
 				Block next = nextSign(start);
 				start = next;
 				if (Util.isSign(next)) {
 					if (loopCheck.add(next.getLocation())) {
-						prevSigns.add(VirtualSign.get(next));
+						VirtualSign sign = VirtualSign.get(next);
+						if (sign.getRealLine(this.line).contains("%")) {
+							if (prevSigns.size() > 0) end = true;
+						}
+						prevSigns.add(sign);
 					} else {
 						break;
 					}
@@ -247,7 +264,11 @@ public class LinkedSign {
 								start = next;
 								if (loopCheck.add(next.getLocation())) {
 									//It's not added, allowed
-									prevSigns.add(VirtualSign.get(next));
+									VirtualSign sign = VirtualSign.get(next);
+									if (sign.getRealLine(this.line).contains("%")) {
+										if (prevSigns.size() > 0) end = true;
+									}
+									prevSigns.add(sign);
 									found = true;
 									break;
 								}
@@ -258,6 +279,7 @@ public class LinkedSign {
 						break;
 					}
 				}
+				if (end) break;
 			}
 			if (this.direction == Direction.LEFT) Collections.reverse(prevSigns);
 			return prevSigns;

@@ -1,21 +1,17 @@
 package com.bergerkiller.bukkit.sl.API;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 
+import com.bergerkiller.bukkit.sl.LinkedSign;
 import com.bergerkiller.bukkit.sl.Util;
 import com.bergerkiller.bukkit.sl.VirtualSign;
 
 public class Variables {
 	private static HashMap<String, Variable> variables = new HashMap<String, Variable>();
-	
-	public static void update(boolean forced) {
-		VirtualSign.updateAll(forced);
-	}
-	public static void update() {
-		update(false);
-	}
 	
 	public static void updateSignOrder() {
 		for (Variable var : variables.values()) {
@@ -37,7 +33,7 @@ public class Variables {
 		return var;
 	}
 	public static Variable get(VirtualSign sign, int line) {
-		return get(Util.getVarName(sign.getLine(line)));
+		return get(Util.getVarName(sign.getRealLine(line)));
 	}
 	public static Variable get(Block signblock, int line) {
 		if (Util.isSign(signblock)) {
@@ -45,37 +41,27 @@ public class Variables {
 		}
 		return null;
 	}
-	
 	public static boolean remove(String name) {
 		return variables.remove(name) != null;
 	}
-	public static Variable set(String name, String value) {
-		Variable var = get(name);
-		var.setValue(value);
-		return var;
-	}
-	public static Variable set(String name, Variable value) {
-		variables.put(name, value);
-		return value;
-	}
-	public static void setList(String name, String... values) {
-		for (int i = 0;i < values.length; i++) {
-			set(name + "[" + i + "]", values[i]);
-		}
-	}
-	public static int getListDisplaySize(String name) {
-		int i = 0;
-		while (variables.containsKey(name + "[" + (i + 1) + "]")) {
-			i++;
-		}
-		return i;
-	}
-	
+			
 	public static boolean removeLocation(Block signblock) {
 		for (Variable var : variables.values()) {
 			var.removeLocation(signblock);
 		}
 		return VirtualSign.remove(signblock);
 	}
-
+	
+	public static boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
+		return find(signs, variables, at.getLocation());
+	}
+	public static boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
+		boolean found = false;
+		for (Variable var : Variables.variables.values()) {
+			if (var.find(signs, variables, at)) {
+				found = true;
+			}
+		}
+		return found;
+	}
 }

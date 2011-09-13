@@ -106,13 +106,13 @@ public class Util {
 					BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP};
 		}
 	}
-	public static ChatColor getColor(char code) {
+	public static ChatColor getColor(char code, ChatColor def) {
 		for (ChatColor color : ChatColor.values()) {
 			if (code == color.toString().charAt(1)) {
 				return color;
 			}
 		}
-		return ChatColor.BLACK;
+		return def;
 	}
 	
 	public static String getVarName(String line) {
