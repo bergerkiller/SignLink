@@ -63,6 +63,9 @@ public class LinkedSign {
 	public void updateText(String... forplayers){
 		setText(this.oldtext, forplayers);
 	}
+	public String getText() {
+		return this.oldtext;
+	}
 	public void setText(String value, String... forplayers) {	
 		oldtext = value;
 		if (!SignLink.updateSigns) return; 

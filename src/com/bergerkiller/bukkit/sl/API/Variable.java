@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.sl.LinkedSign;
+import com.bergerkiller.bukkit.sl.VirtualSign;
 
 public class Variable {
 	private String defaultvalue;
@@ -116,11 +117,13 @@ public class Variable {
 	public boolean removeLocation(LinkedSign sign) {
 		SignRemoveEvent event = new SignRemoveEvent(this, sign);
 		Bukkit.getServer().getPluginManager().callEvent(event);
-		if (!event.isCancelled()) {
-			return boundTo.remove(sign);
-		} else {
-			return false;
+		if (boundTo.remove(sign)) {
+			for (VirtualSign vsign : sign.getSigns()) {
+				vsign.setLine(sign.line, vsign.getRealLine(sign.line));
+			}
+			return true;
 		}
+		return false;
 	}
 		
 	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
