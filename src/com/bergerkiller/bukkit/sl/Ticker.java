@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.sl;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Ticker {
 	public Ticker(String varname, String text, long interval, byte mode) {
@@ -16,6 +17,7 @@ public class Ticker {
 	private long interval;
 	private long counter;
 	private byte mode;
+	public List<String> players;
 	private int pauseindex = 0;
 	private ArrayList<Pause> pauses = new ArrayList<Pause>();
 	private Pause getNextPause() {

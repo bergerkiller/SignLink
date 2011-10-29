@@ -182,6 +182,7 @@ public class LinkedSign {
 		}
 	}
 	
+	private HashSet<Location> loopCheck = new HashSet<Location>();
 	private Block nextSign(Block from) {
 		BlockFace face = Util.getFacing(from);
 		switch (face) {
@@ -193,19 +194,35 @@ public class LinkedSign {
 		if (this.direction == Direction.RIGHT) {
 			face = face.getOppositeFace();
 		}
-		return from.getRelative(face);
+		Block next = from.getRelative(face);
+		if (!Util.isSign(next)) {
+			//Jumping a gap?
+			boolean found = false;
+			for (BlockFace f : Util.getFaces(true)) {
+				Block next2 = next.getRelative(f);
+				if (Util.isSign(next2)) {
+					next = next2;
+					found = true;
+					break;
+				}
+			}
+			if (!found) next = null;
+		}
+		if (next != null && loopCheck.add(next.getLocation()))  {
+			return next;
+		}
+		return null;
 	}
 	
 	private boolean validateSigns() {
 		if (prevSigns != null && prevSigns.size() != 0) {
-			boolean pass = true;
 			for (VirtualSign sign : prevSigns) {
 				if (!sign.isValid()) {
 					sign.remove();
-					pass = false;
+					return false;
 				}
 			}
-			return pass;
+			return true;
 		}
 		return false;
 	}
@@ -231,58 +248,28 @@ public class LinkedSign {
 		if (start != null && !Util.isLoaded(start)) return null;
 
 		if (validateSigns() && !updateSignOrder) {
-			updateSignOrder = false;
 			return prevSigns;
 		}
+		updateSignOrder = false;
 				
 		//Regenerate old signs and return
 		if (Util.isSign(start)) {
-			HashSet<Location> loopCheck = new HashSet<Location>();
+			loopCheck.clear();
 			prevSigns = new ArrayList<VirtualSign>();
 			prevSigns.add(VirtualSign.get(start));
 			if (this.direction == Direction.NONE) return prevSigns;
-			boolean end = false; //If we found a test% or %test variable
-			while (true) {
+			while (start != null) {
 				//Check for next signs
-				Block next = nextSign(start);
-				start = next;
-				if (Util.isSign(next)) {
-					if (loopCheck.add(next.getLocation())) {
-						VirtualSign sign = VirtualSign.get(next);
-						if (sign.getRealLine(this.line).contains("%")) {
-							if (prevSigns.size() > 0) end = true;
-						}
-						prevSigns.add(sign);
-					} else {
-						break;
+				start = nextSign(start);
+				if (start != null) {
+					VirtualSign sign = VirtualSign.get(start);
+					if (sign.getRealLine(this.line).contains("%")) {
+						if (prevSigns.size() > 0) start = null;
 					}
+					prevSigns.add(sign);
 				} else {
-					//Jumping a gap? We need a next possible sign
-					boolean found = false;
-					for (BlockFace face : Util.getFaces(true)) {
-						next = start.getRelative(face);
-						if (Util.isSign(next)) {
-							//Is the next of this sign not the same as the source?
-							if (!nextSign(next).getLocation().equals(start.getLocation())) {
-								start = next;
-								if (loopCheck.add(next.getLocation())) {
-									//It's not added, allowed
-									VirtualSign sign = VirtualSign.get(next);
-									if (sign.getRealLine(this.line).contains("%")) {
-										if (prevSigns.size() > 0) end = true;
-									}
-									prevSigns.add(sign);
-									found = true;
-									break;
-								}
-							}
-						}
-					}
-					if (!found) {
-						break;
-					}
+					break;
 				}
-				if (end) break;
 			}
 			if (this.direction == Direction.LEFT) Collections.reverse(prevSigns);
 			return prevSigns;

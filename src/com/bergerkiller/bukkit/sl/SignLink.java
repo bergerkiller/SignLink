@@ -7,12 +7,13 @@ import java.util.logging.Level;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.config.Configuration;
+
 
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -25,44 +26,36 @@ public class SignLink extends JavaPlugin {
 	public static boolean allowSignEdit = true;
 
 	private SLBlockListener blockListener = new SLBlockListener();
+	private SLLowBlockListener blockListenerLow = new SLLowBlockListener();
 	private SLPlayerListener playerListener = new SLPlayerListener();
 	
 	public void loadValues() {
 		//Load tickers
-		File values = new File(this.getDataFolder() + File.separator + "values.yml");
-		boolean generate = !values.exists();
-		Configuration config = new Configuration(values);
-		if (generate) {
-			config.setHeader("# In here you can set default values for this plugin.",
-					"# The ticker property can be LEFT, RIGHT or NONE and sets the direction message is 'ticked'.", 
-					"# tickerInterval sets the amount of ticks (1/20 of a second) are between the ticker update.", 
-					"# The value is the thing to display or tick.", 
-					"# To use colors in your text, use the § or & sign followed up by a value from 0 - F.", 
-					"# Example: §cRed and &cRed to display a red colored 'Red' message.", 
-					"# You can find all color codes on the internet");
-			
-			config.setProperty("test.ticker", "LEFT");
-			config.setProperty("test.tickerInterval", 3);
-			config.setProperty("test.value", "This is a test message being ticked from right to left. ");
-			config.setProperty("sign.ticker", "NONE");
-			config.setProperty("sign.value", "This is a regular message you can set and is updated only once.");
-			config.save();
+		Configuration values = new Configuration(this.getDataFolder() + File.separator + "values.yml");
+		if (!values.exists()) {			
+			values.set("test.ticker", "LEFT");
+			values.set("test.tickerInterval", 3);
+			values.set("test.value", "This is a test message being ticked from right to left. ");
+			values.set("sign.ticker", "NONE");
+			values.set("sign.value", "This is a regular message you can set and is updated only once.");
+			values.save();
 		}
 		ArrayList<Ticker> tickers = new ArrayList<Ticker>();
-		config.load();
-		for (String key : config.getKeys()) {
-			String tickmode = config.getString(key + ".ticker", "NONE");
+		values.load();
+		for (String key : values.getKeys(false)) {
+			String tickmode = values.getString(key + ".ticker", "NONE");
 			byte mode = 0;
 			if (tickmode.equalsIgnoreCase("LEFT")) {
 				mode = 2;
 			} else if (tickmode.equalsIgnoreCase("RIGHT")) {
 				mode = 1;
 			}
-			int interval = config.getInt(key + ".tickerInterval", 1);
-			String message = config.getString(key + ".value", "None");
-			List<Integer> delays = config.getIntList(key + ".pauseDelays", new ArrayList<Integer>());
-			List<Integer> durations = config.getIntList(key + ".pauseDurations", new ArrayList<Integer>());
+			int interval = values.getInt(key + ".tickerInterval", 1);
+			String message = values.getString(key + ".value", "None");
+			List<Integer> delays = values.getListOf(key + ".pauseDelays");
+			List<Integer> durations = values.getListOf(key + ".pauseDurations");
 			Ticker t = new Ticker(key, message, interval, mode);
+			t.players = values.getListOf(key + ".forPlayers");
 			if (delays.size() == durations.size()) {
 				for (int i = 0; i < delays.size(); i++) {
 					int delay = delays.get(i);
@@ -90,21 +83,26 @@ public class SignLink extends JavaPlugin {
 				}
 				//Actual stuff here
 				for (int i = 0; i < vars.size(); i++) {
-					vars.get(i).set(tickers.get(i).getNext());
+					vars.get(i).set(tickers.get(i).getNext(), tickers.get(i).players);
 				}
 			}
 		};
 		tickertask.startRepeating(1);
 	}
 	
+	public void updatePlayerName(Player p) {
+		Variables.get("playername").forPlayers(p).set(p.getName());
+	}
+	
 	public void onEnable() {
 		plugin = this;
 		PluginManager pm = this.getServer().getPluginManager();
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListenerLow, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 
 		getCommand("togglesignupdate").setExecutor(this);
 		getCommand("reloadsignlink").setExecutor(this);
@@ -170,6 +168,10 @@ public class SignLink extends JavaPlugin {
 		updatetask.startRepeating(1L);
 		
 		updateSigns = true;
+		
+		for (Player p : getServer().getOnlinePlayers()) {
+			updatePlayerName(p);
+		}
 		
 		Util.log(Level.INFO, " version " + this.getDescription().getVersion() + " is enabled!");
 	}

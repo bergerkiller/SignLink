@@ -88,46 +88,37 @@ public class SLBlockListener extends BlockListener {
 		
 	@Override
 	public void onSignChange(SignChangeEvent event) {
-		if (!event.isCancelled()) {
+		if (!event.isCancelled()) {			
 			//Convert colors
 			Util.replaceColors(event.getLines());
 			
-			//Get the ACTUAL sign being edited :)
-			Block b = event.getBlock();
-			Location alternative = editedSigns.remove(b.getLocation());
-			if (alternative != null) {
-				b = alternative.getBlock();
-				if (Util.isSign(b)) {
-					//We need to target another sign...
-					VirtualSign sign = VirtualSign.get(b);
+			Task t = new Task(event) {
+				public void run() {
+					SignChangeEvent event = (SignChangeEvent) getArg(0);
+					if (event.isCancelled()) return;
+					//General stuff...
+					boolean allowvar = event.getPlayer().hasPermission("signlink.addsign");
+					VirtualSign.add(event.getBlock(), event.getLines());
 					for (int i = 0; i < 4; i++) {
-						sign.setRealLine(i, event.getLine(i));
-						sign.setLine(i, event.getLine(i));
+						String varname = Util.getVarName(event.getLine(i));
+						if (varname != null) {
+							if (allowvar) {
+								Variable var = Variables.get(varname);
+								if (var.addLocation(event.getBlock(), i)) {
+									event.getPlayer().sendMessage(ChatColor.GREEN + "You made a sign linking to variable: " + varname);
+								} else {
+									event.getPlayer().sendMessage(ChatColor.RED + "Failed to create a variable-linked sign here!");
+								}
+							} else {
+								event.getPlayer().sendMessage(ChatColor.DARK_RED + "You don't have permission to use dynamic text on signs!");
+								return;
+							} 
+						}
 					}
-					sign.update(true);
-					
-					//Remove the old one
-					event.getBlock().setTypeId(0);
+					Variables.updateSignOrder(event.getBlock());
 				}
-			}
-						
-			//General stuff...
-			boolean allowvar = event.getPlayer().hasPermission("signlink.addsign");
-			for (int i = 0;i < 4; i++) {
-				String varname = Util.getVarName(event.getLine(i));
-				if (varname != null) {
-					if (allowvar) {
-						VirtualSign.add(b, event.getLines());
-						Variable var = Variables.get(varname);
-						var.addLocation(b, i);
-						event.getPlayer().sendMessage(ChatColor.GREEN + "You made a sign linking to variable: " + varname);
-					} else {
-						event.getPlayer().sendMessage(ChatColor.DARK_RED + "You don't have permission to use dynamic text on signs!");
-						break;
-					} 
-				}
-			}
-			Variables.updateSignOrder();
+			};
+			t.startDelayed(0);
 		}
 	}
 		

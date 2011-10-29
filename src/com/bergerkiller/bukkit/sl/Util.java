@@ -16,6 +16,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.material.Directional;
+import org.bukkit.util.Vector;
 
 public class Util {
 	private static Logger logger = Logger.getLogger("Minecraft");
@@ -23,6 +24,25 @@ public class Util {
 		logger.log(level, "[SignLink] " + message);
 	}
 	
+	public static Location move(Location loc, Vector offset) {
+        // Convert rotation to radians
+        float ryaw = -loc.getYaw() / 180f * (float) Math.PI;
+        float rpitch = loc.getPitch() / 180f * (float) Math.PI;
+
+        //Conversions found by (a lot of) testing
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        z -= offset.getX() * Math.sin(ryaw);
+        z += offset.getY() * Math.cos(ryaw) * Math.sin(rpitch);
+        z += offset.getZ() * Math.cos(ryaw) * Math.cos(rpitch);
+        x += offset.getX() * Math.cos(ryaw);
+        x += offset.getY() * Math.sin(rpitch) * Math.sin(ryaw);
+        x += offset.getZ() * Math.sin(ryaw) * Math.cos(rpitch);
+        y += offset.getY() * Math.cos(rpitch);
+        y -= offset.getZ() * Math.sin(rpitch);
+        return new Location(loc.getWorld(), x, y, z, loc.getYaw(), loc.getPitch());
+    }
 	public static boolean isSign(Block block) {
 		if (block == null) return false;
 		Material type = block.getType();
@@ -141,7 +161,9 @@ public class Util {
 			}
 			varname = varname.trim();
 			if (!varname.equals("")) {
-				return varname;
+				if (!varname.contains(" ")) {
+					return varname;
+				}
 			}
 		}
 		return null;

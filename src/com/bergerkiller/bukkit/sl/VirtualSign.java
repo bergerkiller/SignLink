@@ -60,7 +60,6 @@ public class VirtualSign {
 	}
 	public static void updateAll() {
 		for (VirtualSign sign : virtualSigns.values().toArray(new VirtualSign[0])) {
-			sign.ignorePackets = false;
 			sign.update();
 		}
 	}
@@ -238,6 +237,9 @@ public class VirtualSign {
 		this.update(false);
 	}
 	public void update(boolean forced) {	
+		if (!this.isLoaded()) return;
+		//Allow packets to be sent (after a tick)
+		this.ignorePackets = false;
 		//Check for realtime changes to the text
 		boolean realtimechange = false;
 		for (int i = 0; i < 4; i++) {
@@ -265,7 +267,6 @@ public class VirtualSign {
 			}
 			return;
 		}
-		if (!this.isLoaded()) return;
 		if (this.isValid()) {
 			//Replace the entity if this is needed
 			TileEntityVirtualSign.replace(getX(), getY(), getZ(), getWorld());

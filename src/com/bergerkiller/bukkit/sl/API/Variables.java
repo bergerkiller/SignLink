@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.sl.LinkedSign;
@@ -16,6 +17,16 @@ public class Variables {
 	public static void updateSignOrder() {
 		for (Variable var : variables.values()) {
 			var.updateSignOrder();
+		}
+	}
+	public static void updateSignOrder(World world) {
+		for (Variable var : variables.values()) {
+			var.updateSignOrder(world);
+		}
+	}
+	public static void updateSignOrder(Block start) {
+		for (Variable var : variables.values()) {
+			var.updateSignOrder(start);
 		}
 	}
 	
