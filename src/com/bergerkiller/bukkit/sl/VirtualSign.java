@@ -19,6 +19,10 @@ import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class VirtualSign {
 	private static HashMap<BlockLocation, VirtualSign> virtualSigns = new HashMap<BlockLocation, VirtualSign>();
+	public static void deinit() {
+		virtualSigns.clear();
+		virtualSigns = null;
+	}
 	public static VirtualSign add(Block b, String[] lines) {
 		BlockLocation at = new BlockLocation(b);
 		VirtualSign vsign = new VirtualSign();

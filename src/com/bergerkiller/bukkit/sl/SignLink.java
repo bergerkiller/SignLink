@@ -7,7 +7,6 @@ import java.util.logging.Level;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
@@ -207,6 +206,9 @@ public class SignLink extends JavaPlugin {
 			}
 		}
 		writer.close();
+		
+		Variables.deinit();
+		VirtualSign.deinit();
 		Util.log(Level.INFO, " is disabled!");
 	}
 	

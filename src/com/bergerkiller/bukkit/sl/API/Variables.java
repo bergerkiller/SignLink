@@ -13,6 +13,10 @@ import com.bergerkiller.bukkit.sl.VirtualSign;
 
 public class Variables {
 	private static HashMap<String, Variable> variables = new HashMap<String, Variable>();
+	public static void deinit() {
+		variables.clear();
+		variables = null;
+	}
 	
 	public static void updateSignOrder() {
 		for (Variable var : variables.values()) {

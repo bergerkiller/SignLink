@@ -169,7 +169,7 @@ public class LinkedSign {
 			}
 			sign.setLine(this.line, line, forplayers);
 			index++;
-			if (index == bits.size() - 1) break;
+			if (index == bits.size()) break;
 		}
 	}
 
