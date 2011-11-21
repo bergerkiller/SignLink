@@ -61,12 +61,12 @@ public class LinkedSign {
 	private ArrayList<VirtualSign> prevSigns = new ArrayList<VirtualSign>();
 	
 	public void updateText(String... forplayers){
-		setText(this.oldtext, forplayers);
+		setText(this.oldtext, false, forplayers);
 	}
 	public String getText() {
 		return this.oldtext;
 	}
-	public void setText(String value, String... forplayers) {	
+	public void setText(String value, boolean global, String... forplayers) {	
 		oldtext = value;
 		if (!SignLink.updateSigns) return; 
 		ArrayList<VirtualSign> signs = getSigns();
@@ -129,50 +129,62 @@ public class LinkedSign {
 		//Set the signs
 		int index = 0;
 		for (VirtualSign sign : signs) {
-			String line = sign.getRealLine(this.line);
-			if (index == 0 && signs.size() == 1) {
-				//set the value in between the two % %
-				String start = line.substring(0, startoffset);
-				int endindex = line.lastIndexOf("%");
-				if (endindex != -1 && endindex != startoffset) {
-					String end = line.substring(endindex + 1);
-					line = start + bits.get(0);
-					int remainder = 15 - line.length() - end.length();
-					if (remainder < 0) {
-						line = line.substring(0, line.length() + remainder);
-					}
-					line += end;
+			if (index == bits.size()) {
+				//clear the sign
+				if (!global && (forplayers == null || forplayers.length == 0)) {
+					sign.setDefaultLine(this.line, "");
 				} else {
-					line = start + bits.get(0);
+					sign.setLine(this.line, "", forplayers);
 				}
-			} else if (index == 0) {
-				//first, take % in account
-				String bit = bits.get(0);
-				line = line.substring(0, startoffset) + bit;
-			} else if (index == signs.size() - 1) {
-				//last, take % in account
-				String bit = bits.get(index);
-				int endindex = line.lastIndexOf("%") + 1;
-				if (endindex > line.length() - 1) endindex = line.length() - 1;
-				String end = "";
-				if (endindex < line.length() - 1) {
-					end = line.substring(endindex);
-				}
-				endindex = 15 - end.length();
-				if (endindex > bit.length() - 1) {
-					endindex = bit.length() - 1;
-				}
-				line = bit.substring(0, endindex) + end;
 			} else {
-				//A sign in the middle, simply set it
-				line = bits.get(index);
+				String line = sign.getRealLine(this.line);
+				if (index == 0 && signs.size() == 1) {
+					//set the value in between the two % %
+					String start = line.substring(0, startoffset);
+					int endindex = line.lastIndexOf("%");
+					if (endindex != -1 && endindex != startoffset) {
+						String end = line.substring(endindex + 1);
+						line = start + bits.get(0);
+						int remainder = 15 - line.length() - end.length();
+						if (remainder < 0) {
+							line = line.substring(0, line.length() + remainder);
+						}
+						line += end;
+					} else {
+						line = start + bits.get(0);
+					}
+				} else if (index == 0) {
+					//first, take % in account
+					String bit = bits.get(0);
+					line = line.substring(0, startoffset) + bit;
+				} else if (index == signs.size() - 1) {
+					//last, take % in account
+					String bit = bits.get(index);
+					int endindex = line.lastIndexOf("%") + 1;
+					if (endindex > line.length() - 1) endindex = line.length() - 1;
+					String end = "";
+					if (endindex < line.length() - 1) {
+						end = line.substring(endindex);
+					}
+					endindex = 15 - end.length();
+					if (endindex > bit.length() - 1) {
+						endindex = bit.length() - 1;
+					}
+					line = bit.substring(0, endindex) + end;
+				} else {
+					//A sign in the middle, simply set it
+					line = bits.get(index);
+				}
+				if (!global && (forplayers == null || forplayers.length == 0)) {
+					sign.setDefaultLine(this.line, line);
+				} else {
+					sign.setLine(this.line, line, forplayers);
+				}
+				index++;
 			}
-			sign.setLine(this.line, line, forplayers);
-			index++;
-			if (index == bits.size()) break;
 		}
 	}
-
+	
 	public void update(boolean forced) {
 		ArrayList<VirtualSign> signs = getSigns();
 		if (signs != null) {
@@ -230,6 +242,7 @@ public class LinkedSign {
 	public Block getStartBlock() {
 		World w = Bukkit.getServer().getWorld(this.worldname);
 		if (w == null) return null;
+		if (!w.isChunkLoaded(x >> 4, z >> 4)) return null;
 		return w.getBlockAt(x, y, z);
 	}
 	public Location getStartLocation() {
@@ -245,7 +258,13 @@ public class LinkedSign {
 	public ArrayList<VirtualSign> getSigns() {
 		Block start = getStartBlock();
 		//Unloaded chunk?
-		if (start != null && !Util.isLoaded(start)) return null;
+		if (start == null) {
+			if (this.prevSigns != null) {
+				this.prevSigns.clear();
+				this.prevSigns = null;
+			}
+			return null;
+		}
 
 		if (validateSigns() && !updateSignOrder) {
 			return prevSigns;

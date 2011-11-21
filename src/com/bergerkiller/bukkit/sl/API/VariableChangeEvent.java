@@ -6,22 +6,19 @@ import org.bukkit.event.Event;
 public class VariableChangeEvent extends Event implements Cancellable {
 	private static final long serialVersionUID = -7712965743389224793L;
 	private boolean cancelled = false;
-	private String oldvalue;
 	private String newvalue;
 	private Variable variable;
-	private String[] players;
+	private PlayerVariable[] players;
+	private VariableChangeType type;
 
-	public VariableChangeEvent(Variable variable, String newvalue, String[] players) {
+	public VariableChangeEvent(Variable variable, String newvalue, PlayerVariable[] players, VariableChangeType type) {
 		super("VariableChangeEvent");
-		this.oldvalue = variable.get();
-		this.variable = variable;
 		this.newvalue = newvalue;
+		this.variable = variable;
 		this.players = players;
+		this.type = type;
 	}
 	
-	public String getOldValue() {
-		return this.oldvalue;
-	}
 	public String getNewValue() {
 		return this.newvalue;
 	}
@@ -31,11 +28,11 @@ public class VariableChangeEvent extends Event implements Cancellable {
 	public Variable getVariable() {
 		return this.variable;
 	}
-	public String[] getPlayers() {
+	public PlayerVariable[] getPlayers() {
 		return this.players;
 	}
-	public boolean isGlobalChange() {
-		return this.players == null;
+	public VariableChangeType getChangeType() {
+		return this.type;
 	}
 
 	@Override

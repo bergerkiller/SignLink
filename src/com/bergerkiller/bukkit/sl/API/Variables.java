@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.sl.API;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 import org.bukkit.Location;
@@ -16,6 +17,23 @@ public class Variables {
 	public static void deinit() {
 		variables.clear();
 		variables = null;
+	}
+	
+	public static boolean isUsedByPlugin(String name) {
+		if (name.equalsIgnoreCase("time")) return true;
+		if (name.equalsIgnoreCase("date")) return true;
+		if (name.equalsIgnoreCase("playername")) return true;
+		return false;
+	}
+	
+	public static void updateTickers() {
+		for (Variable var : variables.values()) {
+			var.updateTickers();
+		}
+	}
+	
+	public static Collection<Variable> all() {
+		return variables.values();
 	}
 	
 	public static void updateSignOrder() {

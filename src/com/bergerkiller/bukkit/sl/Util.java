@@ -173,22 +173,22 @@ public class Util {
 	 * See http://www.rgagnon.com/javadetails/java-0106.html
 	 */
 	public static String now(String dateformat) {
-		Calendar cal = Calendar.getInstance();
-		SimpleDateFormat sdf = new SimpleDateFormat(dateformat);
-		return sdf.format(cal.getTime()).trim();
+		return now(new SimpleDateFormat(dateformat));
+	}
+	public static String now(SimpleDateFormat format) {
+		return format.format(Calendar.getInstance().getTime()).trim();
 	}
 	
-	/**
-	 * CommandBook getTime function, credit go to them for this!
-	 * @param time - The time to parse
-	 * @return The name of this time
-	 */
-    public static String getTimeString(long time) {
-        int hours = (int) ((time / 1000 + 8) % 24);
-        int minutes = (int) (60 * (time % 1000) / 1000);
-        return String.format("%02d:%02d (%d:%02d %s)",
-                hours, minutes, (hours % 12) == 0 ? 12 : hours % 12, minutes,
-                hours < 12 ? "am" : "pm");
+    public static String[] remove(String[] input, int index) {
+    	String[] rval = new String[input.length - 1];
+    	int i = 0;
+    	for (int ii = 0; ii < input.length; ii++) {
+    		if (ii != index) {
+    			rval[i] = input[ii];
+    			i++;
+    		}
+    	}
+    	return rval;
     }
-	
+    	
 }

@@ -1,53 +1,69 @@
 package com.bergerkiller.bukkit.sl.API;
 
-import java.util.ArrayList;
-
-import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
 
 public class PlayerVariable {
 
-	private ArrayList<String> players = new ArrayList<String>();
 	private Variable variable;
+	String value;
+	private String playername;
+	Ticker ticker;
 	
-	public PlayerVariable(Variable source,  String[] players) {
-		for (String player : players) {
-			this.players.add(player);
+	public PlayerVariable(String playername, Variable variable) {
+		this(playername, variable, variable.getDefault());
+	}
+	public PlayerVariable(String playername, Variable variable, String value) {
+		this.playername = playername;
+		this.value = value;
+		this.variable = variable;
+		this.ticker = this.variable.getDefaultTicker();
+	}
+	
+	public String get() {
+		return this.value;
+	}
+	public String getPlayer() {
+		return this.playername;
+	}
+			
+	public void clear() {
+		this.set("%" + this.variable.getName() + "%");
+		this.ticker = null;
+	}
+	
+	public boolean set(String value) {
+		//is a change required?
+		if (this.value.equals(value)) {
+			return true;
 		}
-		this.variable = source;
-	}
-	
-	public String[] getPlayers() {
-		return this.players.toArray(new String[0]);
-	}
-	public void addPlayer(String name) {
-		this.players.add(name);
-	}
-	public void addPlayer(Player player) {
-		addPlayer(player.getName());
-	}
-	public void removePlayer(String name) {
-		this.players.remove(name);
-	}
-	public void removePlayer(Player player) {
-		removePlayer(player.getName());
-	}
-	
-	public String get(String playername) {
-		return variable.get(playername);
-	}
-	public String[] get() {
-		String[] values = new String[players.size()];
-		for (int i = 0; i < 4; i++) {
-			values[i] = get(players.get(i));
+		VariableChangeEvent event = new VariableChangeEvent(this.variable, value, new PlayerVariable[] {this}, VariableChangeType.PLAYER);
+		Bukkit.getServer().getPluginManager().callEvent(event);
+		if (!event.isCancelled()) {
+			this.value = value;
+			getTicker().reset(value);
+			this.variable.setSigns(value, false, new String[] {this.playername});
+			return true;
+		} else {
+			return false;
 		}
-		return values;
-	}
-	
-	public void set(String value) {
-		variable.set(value, getPlayers());
 	}
 
 	public Variable getVariable() {
 		return this.variable;
+	}
+	
+	public boolean isTickerShared() {
+		return this.ticker.isShared();
+	}
+	public Ticker getTicker() {
+		if (this.isTickerShared()) {
+			this.ticker = this.ticker.clone();
+			this.ticker.players = new String[] {this.playername};
+		}
+		return this.ticker;
+	}
+
+	void setTicker(Ticker ticker) {
+		this.ticker = ticker;
 	}
 }

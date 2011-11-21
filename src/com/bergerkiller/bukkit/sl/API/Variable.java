@@ -1,9 +1,8 @@
 package com.bergerkiller.bukkit.sl.API;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -16,73 +15,105 @@ import com.bergerkiller.bukkit.sl.VirtualSign;
 
 public class Variable {
 	private String defaultvalue;
+	private Ticker defaultticker;
 	private String name;
 	private ArrayList<LinkedSign> boundTo = new ArrayList<LinkedSign>();
-	private HashMap<String, String> playervalues = new HashMap<String, String>();
+	private HashMap<String, PlayerVariable> playervariables = new HashMap<String, PlayerVariable>();
 	
-	public Variable(String value, String name) {
-		this.defaultvalue = value;
+	public Variable(String defaultvalue, String name) {
+		this.defaultvalue = defaultvalue;
 		this.name = name;
+		this.defaultticker = new Ticker(this.defaultvalue);
 	}
 	
 	public String getName() {
 		return this.name;
 	}
-	public String get() {
+	
+	public void clear() {
+		this.playervariables.clear();
+		this.set("%" + this.name + "%");
+		this.defaultticker = new Ticker(this.defaultvalue);
+	}
+	
+	public Ticker getDefaultTicker() {
+		return this.defaultticker;
+	}
+	public Ticker getTicker() {
+		for (PlayerVariable pvar : this.forAll()) {
+			pvar.ticker = this.defaultticker;
+		}
+		return this.defaultticker;
+	}
+	
+	public String getDefault() {
 		return this.defaultvalue;
 	}
-	public String get(String player) {
-		String val = playervalues.get(player);
-		if (val == null) return this.get();
-		return val;
+	public String get(String playername) {
+		if (playername == null) return this.getDefault();
+		PlayerVariable pvar = playervariables.get(playername.toLowerCase());
+		if (pvar != null) return pvar.get();
+		return this.getDefault();
 	}
-	
 	public void set(String value) {
-		this.set(value, true);
-	}
-	private void set(String value, boolean clearplayers) {
-		VariableChangeEvent event = new VariableChangeEvent(this, value, null);
+		if (value == null) value = "%" + this.name + "%";
+		//is a change required?
+		if (this.defaultvalue.equals(value)) {
+			if (this.playervariables.size() == 0) {
+				return;
+			}
+		}
+		VariableChangeEvent event = new VariableChangeEvent(this, value, null, VariableChangeType.GLOBAL);
 		Bukkit.getServer().getPluginManager().callEvent(event);
 		if (!event.isCancelled()) {
-			if (clearplayers) playervalues.clear();
 			this.defaultvalue = event.getNewValue();
-			for (LinkedSign sign : getSigns()) {
-				sign.setText(this.defaultvalue);
-			}
+			this.defaultticker.reset(this.defaultvalue);
+			this.playervariables.clear();
+			this.setSigns(this.defaultvalue, true, null);
 		}
 	}
-	public void set(String value, List<String> players) {
-		if (players == null || players.size() == 0) {
-			this.set(value);
-		} else {
-			this.set(value, players.toArray(new String[0]));
-		}
-	}
-	public void set(String value, String[] players) {
-		if (players.length == 0) {
-			set(value);
-		} else {
-			VariableChangeEvent event = new VariableChangeEvent(this, value, players);
-			Bukkit.getServer().getPluginManager().callEvent(event);
-			if (!event.isCancelled()) {
-				for (String player : players) {
-					playervalues.put(player, value);
-				}
-				for (LinkedSign sign : getSigns()) {
-					sign.setText(value, players);
-				}
-			}
+	public void setDefault(String value) {
+		if (value == null) value = "%" + this.name + "%";
+		VariableChangeEvent event = new VariableChangeEvent(this, value, null, VariableChangeType.DEFAULT);
+		Bukkit.getServer().getPluginManager().callEvent(event);
+		if (!event.isCancelled()) {
+			this.defaultvalue = event.getNewValue();
+			this.defaultticker.reset(this.defaultvalue);
+			this.setSigns(this.defaultvalue, false, null);
 		}
 	}
 	
-	public void resetValue(String... players) {
-		set(defaultvalue, players);
+	public Collection<PlayerVariable> forAll() {
+		return playervariables.values();
 	}
-	
+	public PlayerVariable forPlayer(Player player) {
+		return this.forPlayer(player.getName());
+	}
+	public PlayerVariable forPlayer(String playername) {
+		PlayerVariable pvar = playervariables.get(playername.toLowerCase());
+		if (pvar == null) {
+			pvar = new PlayerVariable(playername, this);
+			playervariables.put(playername.toLowerCase(), pvar);
+		}
+		return pvar;
+	}
+	public GroupVariable forGroup(Player... players) {
+		String[] playernames = new String[players.length];
+		for (int i = 0; i < players.length; i++) playernames[i] = players[i].getName();
+		return this.forGroup(playernames);
+	}
+	public GroupVariable forGroup(String... playernames) {
+		PlayerVariable[] vars = new PlayerVariable[playernames.length];
+	    for (int i = 0; i < vars.length; i++) {
+	    	vars[i] = forPlayer(playernames[i]);
+	    }
+		return new GroupVariable(vars, this);
+	}
+		
 	public void update(LinkedSign sign) {
-    	sign.setText(this.defaultvalue);
-    	for (Map.Entry<String, String> entry : playervalues.entrySet()) {
-    		sign.setText(entry.getValue(), entry.getKey());
+    	sign.setText(this.defaultvalue, false);
+    	for (PlayerVariable var : forAll()) {
+    		sign.setText(var.get(), false, var.getPlayer());
     	}
 	}
 	public void update(Block on) {
@@ -99,16 +130,24 @@ public class Variable {
 			update(sign);
 		}
 	}
-	
-	public PlayerVariable forPlayers(String... playernames) {
-		return new PlayerVariable(this, playernames);
-	}
-	public PlayerVariable forPlayers(Player... players) {
-		String[] names = new String[players.length];
-		for (int i = 0; i < players.length; i++) {
-			names[i] = players[i].getName();
+		
+	void setSigns(String value, boolean global, String[] playernames) {
+		for (LinkedSign sign : getSigns()) {
+			sign.setText(value, global, playernames);
 		}
-		return forPlayers(names);
+	}
+	
+	void updateTickers() {
+		//update
+		this.defaultticker.update(this);
+		for (PlayerVariable pvar : this.forAll()) {
+			pvar.ticker.update(this);
+		}
+		//reset
+		this.defaultticker.checked = false;
+		for (PlayerVariable pvar : this.forAll()) {
+			pvar.ticker.checked = false;
+		}
 	}
 	
 	public void updateSignOrder() {
