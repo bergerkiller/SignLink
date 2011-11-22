@@ -1,6 +1,6 @@
 name: SignLink
 main: com.bergerkiller.bukkit.sl.SignLink
-version: 1.10
+version: 1.11
 author: bergerkiller
 description: Plugin that manages the display of variables on signs in various ways
 commands:
@@ -13,6 +13,7 @@ commands:
     variable:
         description: Handles variables
         usage: See development page
+        aliases: [var]
 permissions:
     signlink.addsign:
         description: Allows you to build signs containing variables
@@ -22,4 +23,7 @@ permissions:
         default: op
     signlink.reload:
         description: Allows you to reload the values.yml
+        default: op
+    signlink.edit.*:
+        description: Allows you to edit all variables
         default: op

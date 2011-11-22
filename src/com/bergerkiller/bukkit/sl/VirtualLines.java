@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.sl;
 
 import net.minecraft.server.Packet130UpdateSign;
 
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 public class VirtualLines {
@@ -41,7 +40,6 @@ public class VirtualLines {
 	
 	public void updateSign(Player player, int x, int y, int z) {
 		if (SignLink.updateSigns) {
-			CraftPlayer p = (CraftPlayer) player;
 			String[] lines = new String[4];
 			for (int i = 0; i < 4; i++) {
 				if (this.lines[i].length() > 15) {
@@ -50,8 +48,7 @@ public class VirtualLines {
 					lines[i] = this.lines[i];
 				}
 			}
-			Packet130UpdateSign packet = new Packet130UpdateSign(x, y, z, lines);
-			p.getHandle().netServerHandler.sendPacket(packet);
+			Util.sendPacket(player, new Packet130UpdateSign(x, y, z, lines));
 		}
 	}
 	

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.sl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -98,22 +99,34 @@ public class SLBlockListener extends BlockListener {
 					if (event.isCancelled()) return;
 					//General stuff...
 					boolean allowvar = event.getPlayer().hasPermission("signlink.addsign");
-					VirtualSign.add(event.getBlock(), event.getLines());
+					if (!VirtualSign.exists(event.getBlock())) {
+						VirtualSign.add(event.getBlock(), event.getLines());
+					}
+					ArrayList<String> varnames = new ArrayList<String>();
 					for (int i = 0; i < 4; i++) {
 						String varname = Util.getVarName(event.getLine(i));
 						if (varname != null) {
 							if (allowvar) {
 								Variable var = Variables.get(varname);
 								if (var.addLocation(event.getBlock(), i)) {
-									event.getPlayer().sendMessage(ChatColor.GREEN + "You made a sign linking to variable: " + varname);
+									varnames.add(varname);
 								} else {
-									event.getPlayer().sendMessage(ChatColor.RED + "Failed to create a variable-linked sign here!");
+									event.getPlayer().sendMessage(ChatColor.RED + "Failed to create a sign linking to variable '" + var + "'!");
 								}
 							} else {
 								event.getPlayer().sendMessage(ChatColor.DARK_RED + "You don't have permission to use dynamic text on signs!");
 								return;
-							} 
+							}
 						}
+					}
+					if (varnames.size() == 1) {
+						event.getPlayer().sendMessage(ChatColor.GREEN + "You made a sign linking to variable: " + varnames.get(0));
+					} else if (varnames.size() > 0) {
+						String msg = ChatColor.GREEN + "You made a sign linking to variables:";
+						for (String var : varnames) {
+							msg += " " + var;
+						}
+						event.getPlayer().sendMessage(msg);
 					}
 					Variables.updateSignOrder(event.getBlock());
 				}

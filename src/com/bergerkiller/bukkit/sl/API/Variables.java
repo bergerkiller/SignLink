@@ -15,20 +15,25 @@ import com.bergerkiller.bukkit.sl.VirtualSign;
 public class Variables {
 	private static HashMap<String, Variable> variables = new HashMap<String, Variable>();
 	public static void deinit() {
-		variables.clear();
-		variables = null;
+		synchronized (variables) {
+			variables.clear();
+			variables = null;
+		}
 	}
 	
 	public static boolean isUsedByPlugin(String name) {
 		if (name.equalsIgnoreCase("time")) return true;
 		if (name.equalsIgnoreCase("date")) return true;
 		if (name.equalsIgnoreCase("playername")) return true;
+		if (name.equalsIgnoreCase("tps")) return true;
 		return false;
 	}
 	
 	public static void updateTickers() {
-		for (Variable var : variables.values()) {
-			var.updateTickers();
+		synchronized (variables) {
+			for (Variable var : all()) {
+				var.updateTickers();
+			}
 		}
 	}
 	
@@ -37,33 +42,44 @@ public class Variables {
 	}
 	
 	public static void updateSignOrder() {
-		for (Variable var : variables.values()) {
-			var.updateSignOrder();
+		synchronized (variables) {
+			for (Variable var : all()) {
+				var.updateSignOrder();
+			}
 		}
 	}
 	public static void updateSignOrder(World world) {
-		for (Variable var : variables.values()) {
-			var.updateSignOrder(world);
+		synchronized (variables) {
+			for (Variable var : all()) {
+				var.updateSignOrder(world);
+			}
 		}
 	}
-	public static void updateSignOrder(Block start) {
-		for (Variable var : variables.values()) {
-			var.updateSignOrder(start);
+	public static void updateSignOrder(Block near) {
+		synchronized (variables) {
+			for (Variable var : all()) {
+				var.updateSignOrder(near);
+			}
 		}
 	}
 	
 	public static String[] getNames() {
-		return variables.keySet().toArray(new String[0]);
+		synchronized (variables) {
+			return variables.keySet().toArray(new String[0]);
+		}
 	}
 	
 	public static Variable get(String name) {
 		if (name == null) return null;
-		Variable var = variables.get(name);
-		if (var == null) {
-			var = new Variable("%" + name + "%", name);
-			variables.put(name, var);
+		if (name.contains("\000")) return null;
+		synchronized (variables) {
+			Variable var = variables.get(name);
+			if (var == null) {
+				var = new Variable("%" + name + "%", name);
+				variables.put(name, var);
+			}
+			return var;
 		}
-		return var;
 	}
 	public static Variable get(VirtualSign sign, int line) {
 		return get(Util.getVarName(sign.getRealLine(line)));
@@ -79,10 +95,12 @@ public class Variables {
 	}
 			
 	public static boolean removeLocation(Block signblock) {
-		for (Variable var : variables.values()) {
-			var.removeLocation(signblock);
+		synchronized (variables) {
+			for (Variable var : all()) {
+				var.removeLocation(signblock);
+			}
+			return VirtualSign.remove(signblock);
 		}
-		return VirtualSign.remove(signblock);
 	}
 	
 	public static boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
@@ -90,9 +108,11 @@ public class Variables {
 	}
 	public static boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
 		boolean found = false;
-		for (Variable var : Variables.variables.values()) {
-			if (var.find(signs, variables, at)) {
-				found = true;
+		synchronized (variables) {
+			for (Variable var : all()) {
+				if (var.find(signs, variables, at)) {
+					found = true;
+				}
 			}
 		}
 		return found;

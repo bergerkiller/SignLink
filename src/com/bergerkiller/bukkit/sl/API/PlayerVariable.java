@@ -27,8 +27,8 @@ public class PlayerVariable {
 	}
 			
 	public void clear() {
+		this.ticker = this.variable.getDefaultTicker();
 		this.set("%" + this.variable.getName() + "%");
-		this.ticker = null;
 	}
 	
 	public boolean set(String value) {
@@ -41,7 +41,7 @@ public class PlayerVariable {
 		if (!event.isCancelled()) {
 			this.value = value;
 			getTicker().reset(value);
-			this.variable.setSigns(value, false, new String[] {this.playername});
+			this.variable.setSigns(value, new String[] {this.playername});
 			return true;
 		} else {
 			return false;

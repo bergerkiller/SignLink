@@ -46,7 +46,7 @@ public class GroupVariable {
 				}
 				pvar.value = value;
 			}
-			this.variable.setSigns(value, false, getPlayerNames());
+			this.variable.setSigns(value, getPlayerNames());
 			return true;
 		} else {
 			return false;

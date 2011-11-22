@@ -16,6 +16,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.sl.API.GroupVariable;
 import com.bergerkiller.bukkit.sl.API.PlayerVariable;
+import com.bergerkiller.bukkit.sl.API.TickMode;
+import com.bergerkiller.bukkit.sl.API.Ticker;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
@@ -31,7 +33,6 @@ public class SignLink extends JavaPlugin {
 	private SLPlayerListener playerListener = new SLPlayerListener();
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
-	private long prevtpstime;
 	
 	public void loadValues() {
 		Configuration values = new Configuration(this.getDataFolder() + File.separator + "values.yml");
@@ -89,6 +90,7 @@ public class SignLink extends JavaPlugin {
 		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 
 		getCommand("togglesignupdate").setExecutor(this);
@@ -157,11 +159,10 @@ public class SignLink extends JavaPlugin {
 				ex.printStackTrace();
 			}
 		}
-		
-		prevtpstime = System.currentTimeMillis();
-		
+				
 		//General %time% and %date% update thread
 		timetask = new Task(this) {
+			private long prevtpstime = System.currentTimeMillis();
 			public void run() {
 				Variables.get("time").set(Util.now(SignLink.plugin.timeFormat));
 				Variables.get("date").set(Util.now(SignLink.plugin.dateFormat));
@@ -274,19 +275,24 @@ public class SignLink extends JavaPlugin {
 					args = Util.remove(args, 0);
 					if (cmdLabel.equalsIgnoreCase("edit") || cmdLabel.equalsIgnoreCase("add")) {
 						if (args.length >= 1) {
-							VariableEdit edit = new VariableEdit(Variables.get(args[0]));
-							edit.players = new String[args.length - 1];
-							for (int i = 1; i < args.length; i++) {
-								edit.players[i - 1] = args[i];
-							}
-							editingvars.put(p.getName().toLowerCase(), edit);
-							p.sendMessage(ChatColor.GREEN + "You are now editing variable '" + args[0] + "'");
-							if (edit.players.length > 0) {
-								String msg = ChatColor.YELLOW + "For players:";
-								for (String player : edit.players) {
-									msg += " " + player;
+							if (p.hasPermission("signlink.edit.*") || p.hasPermission("signlink.edit." + args[0])) {
+								VariableEdit edit = new VariableEdit(Variables.get(args[0]));
+								edit.players = new String[args.length - 1];
+								for (int i = 1; i < args.length; i++) {
+									edit.players[i - 1] = args[i];
 								}
-							    p.sendMessage(msg);
+								editingvars.put(p.getName().toLowerCase(), edit);
+								p.sendMessage(ChatColor.GREEN + "You are now editing variable '" + args[0] + "'");
+								if (edit.players.length > 0) {
+									String msg = ChatColor.YELLOW + "For players:";
+									for (String player : edit.players) {
+										msg += " " + player;
+									}
+								    p.sendMessage(msg);
+								}
+							} else {
+								p.sendMessage(ChatColor.RED + "You don't have permission to use this!");
+								return true;
 							}
 						} else {
 							p.sendMessage(ChatColor.RED + "Please specify a variable name!");
@@ -353,6 +359,57 @@ public class SignLink extends JavaPlugin {
 									var.group().clear();
 								}
 								p.sendMessage(ChatColor.YELLOW + "Variable has been cleared!");
+							} else if (cmdLabel.equals("addpause") || cmdLabel.equalsIgnoreCase("pause")) {
+								if (args.length == 2) {
+									try {
+										int delay = Integer.parseInt(args[0]);
+										int duration = Integer.parseInt(args[1]);
+										Ticker t;
+										if (var.global()) {
+											t = var.variable.getTicker();
+										} else {
+											t = var.group().getTicker();
+										}
+										t.addPause(delay, duration);
+										p.sendMessage(ChatColor.GREEN + "Ticker pause added!");
+									} catch (Exception ex) {
+										p.sendMessage(ChatColor.RED + "Please specify valid pause delay and duration values!");
+									}
+								} else {
+									p.sendMessage(ChatColor.RED + "Please specify the delay and duration for this pause!");
+								}
+							} else if (cmdLabel.equalsIgnoreCase("clearpauses") || cmdLabel.equalsIgnoreCase("clearpause")) {
+								Ticker t;
+								if (var.global()) {
+									t = var.variable.getTicker();
+								} else {
+									t = var.group().getTicker();
+								}
+								t.clearPauses();
+								p.sendMessage(ChatColor.YELLOW + "Ticker pauses cleared!");
+							} else if (cmdLabel.equalsIgnoreCase("setticker")) {
+								if (args.length >= 1) {
+									TickMode mode = TickMode.NONE;
+									if (args[0].equalsIgnoreCase("left")) mode = TickMode.LEFT;
+									if (args[0].equalsIgnoreCase("right")) mode = TickMode.RIGHT;
+									int interval = 1;
+									if (args.length > 1) {
+										try {
+											interval = Integer.parseInt(args[1]);
+										} catch (Exception ex) {}
+									}
+									Ticker t;
+									if (var.global()) {
+										t = var.variable.getTicker();
+									} else {
+										t = var.group().getTicker();
+									}
+									t.mode = mode;
+									t.interval = interval;
+									p.sendMessage(ChatColor.GREEN + "You set a '" + mode.toString().toLowerCase() + "' ticker ticking every " + interval + " ticks!");
+								} else {
+									p.sendMessage(ChatColor.RED + "Please specify the ticker direction!");
+								}
 							}
 							//===============================
 						} else {

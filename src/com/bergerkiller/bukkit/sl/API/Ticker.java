@@ -99,20 +99,19 @@ public class Ticker {
  		return this.players == null || this.players.length != 1;
  	}
  	
-    void update(Variable var) {
-    	if (this.checked) return;
+   boolean update() {
+    	if (this.checked) return false;
     	this.checked = true;
- 		if (!countNext()) return;
- 		if (isPaused()) return;
- 		String value;
+ 		if (!countNext()) return false;
+ 		if (isPaused()) return false;
  		if (mode == TickMode.LEFT) {
- 		    value = this.left();
+ 		    this.left();
  		} else if (mode == TickMode.RIGHT) {
- 			value = this.right();
+ 			this.right();
  		} else {
- 			return;
+ 			return false;
  		}
- 		var.setSigns(value, true, this.players);
+ 		return true;
     }
  	
  	public void reset(String value) {
@@ -175,14 +174,14 @@ public class Ticker {
 		return this.value;
 	}
 	public String left() {
-		char c = this.value.charAt(this.value.length() - 1);
-		this.value = c + this.value.substring(0, this.value.length() - 1);
+		char c = this.value.charAt(0);
+		this.value = this.value.substring(1) + c;
 		if (c == '§') return left();
 		return this.value;
 	}
 	public String right() {
-		char c = this.value.charAt(0);
-		this.value = this.value.substring(1) + c;
+		char c = this.value.charAt(this.value.length() - 1);
+		this.value = c + this.value.substring(0, this.value.length() - 1);
 		if (c == '§') return right();
 		return this.value;
 	}

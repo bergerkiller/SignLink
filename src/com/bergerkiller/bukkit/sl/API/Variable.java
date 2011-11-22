@@ -20,7 +20,7 @@ public class Variable {
 	private ArrayList<LinkedSign> boundTo = new ArrayList<LinkedSign>();
 	private HashMap<String, PlayerVariable> playervariables = new HashMap<String, PlayerVariable>();
 	
-	public Variable(String defaultvalue, String name) {
+	Variable(String defaultvalue, String name) {
 		this.defaultvalue = defaultvalue;
 		this.name = name;
 		this.defaultticker = new Ticker(this.defaultvalue);
@@ -69,7 +69,7 @@ public class Variable {
 			this.defaultvalue = event.getNewValue();
 			this.defaultticker.reset(this.defaultvalue);
 			this.playervariables.clear();
-			this.setSigns(this.defaultvalue, true, null);
+			this.setSigns(this.defaultvalue, null);
 		}
 	}
 	public void setDefault(String value) {
@@ -79,7 +79,7 @@ public class Variable {
 		if (!event.isCancelled()) {
 			this.defaultvalue = event.getNewValue();
 			this.defaultticker.reset(this.defaultvalue);
-			this.setSigns(this.defaultvalue, false, null);
+			this.updateAll();
 		}
 	}
 	
@@ -111,9 +111,9 @@ public class Variable {
 	}
 		
 	public void update(LinkedSign sign) {
-    	sign.setText(this.defaultvalue, false);
+    	sign.setText(this.defaultticker.current());
     	for (PlayerVariable var : forAll()) {
-    		sign.setText(var.get(), false, var.getPlayer());
+    		sign.setText(var.getTicker().current(), var.getPlayer());
     	}
 	}
 	public void update(Block on) {
@@ -131,18 +131,20 @@ public class Variable {
 		}
 	}
 		
-	void setSigns(String value, boolean global, String[] playernames) {
+	void setSigns(String value, String[] playernames) {
 		for (LinkedSign sign : getSigns()) {
-			sign.setText(value, global, playernames);
+			sign.setText(value, playernames);
 		}
 	}
 	
 	void updateTickers() {
 		//update
-		this.defaultticker.update(this);
+		boolean changed = false;
+		changed |= this.defaultticker.update();
 		for (PlayerVariable pvar : this.forAll()) {
-			pvar.ticker.update(this);
+			changed |= pvar.ticker.update();
 		}
+		if (changed) this.updateAll();
 		//reset
 		this.defaultticker.checked = false;
 		for (PlayerVariable pvar : this.forAll()) {
@@ -155,13 +157,22 @@ public class Variable {
 			sign.updateSignOrder();
 		}
 	}
-	public void updateSignOrder(Block start) {
-		for (LinkedSign sign : getSigns()) {
-			Location loc = sign.getStartLocation();
-			if (loc != null) {
-				if (loc.equals(start.getLocation())) {
-					sign.updateSignOrder();
-				}
+	public void updateSignOrder(Block near) {
+		for (LinkedSign sign : this.boundTo) {
+			if (!sign.worldname.equals(near.getWorld().getName())) continue;
+			ArrayList<VirtualSign> signs = sign.getSigns();
+			if (signs == null) continue;
+			if (signs.size() == 0) continue;
+			for (VirtualSign vsign : signs) {
+				if (vsign.getX() - near.getX() < -2) continue;
+				if (vsign.getX() - near.getX() > 2) continue;
+				if (vsign.getZ() - near.getZ() < -2) continue;
+				if (vsign.getZ() - near.getZ() > 2) continue;
+				if (vsign.getY() - near.getY() < -2) continue;
+				if (vsign.getY() - near.getY() > 2) continue;
+				sign.updateSignOrder();
+				this.update(sign);
+				break;
 			}
 		}
 	}
@@ -212,7 +223,6 @@ public class Variable {
 		if (!event.isCancelled()) {
 			boundTo.add(sign);
 			update(sign);
-			sign.update(true);
 			return true;
 		}
 		return false;
@@ -220,7 +230,8 @@ public class Variable {
 	public boolean removeLocation(Block signblock) {
 		for (LinkedSign sign : boundTo) {
 			if (signblock.getLocation().equals(sign.getStartLocation())) {
-				return removeLocation(sign);
+				if (!removeLocation(sign)) return false;
+				return removeLocation(signblock);
 			}
 		}
 		return false;

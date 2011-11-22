@@ -37,37 +37,53 @@ public class VirtualSign {
 		for (int i = 0; i < 4; i++) {
 			vsign.oldlines[i] = vsign.sign.getLine(i);
 		}
-		
-		virtualSigns.put(at, vsign);
+		synchronized (virtualSigns) {
+			virtualSigns.put(at, vsign);
+		}
 		return vsign;
 	}
 	public static VirtualSign add(Block b) {
 		return add(b, null);
 	}
 	public static VirtualSign get(Location at) {
-		if (virtualSigns == null) return null;
-		BlockLocation loc = new BlockLocation(at);
-		if (Util.isSign(at)) {
-			VirtualSign sign = virtualSigns.get(loc);
-			if (sign == null || !sign.isValid()) sign = add(at.getBlock());
-			return sign;
-		} else {
-			virtualSigns.remove(loc);
-			return null;
+		synchronized (virtualSigns) {
+			if (virtualSigns == null) return null;
+			BlockLocation loc = new BlockLocation(at);
+			if (Util.isSign(at)) {
+				VirtualSign sign = virtualSigns.get(loc);
+				if (sign == null || !sign.isValid()) sign = add(at.getBlock());
+				return sign;
+			} else {
+				virtualSigns.remove(loc);
+				return null;
+			}
 		}
 	}
 	public static VirtualSign get(Block b) {
 		return get(b.getLocation());
 	}
 	public static VirtualSign[] getAll() {
-		return virtualSigns.values().toArray(new VirtualSign[0]);
+		synchronized (virtualSigns) {
+			return virtualSigns.values().toArray(new VirtualSign[0]);
+		}
 	}
 
+	public static boolean exists(Location at) {
+		return exists(at.getBlock());
+	}
+	public static boolean exists(Block at) {
+		synchronized (virtualSigns) {
+			return virtualSigns.containsKey(new BlockLocation(at));
+		}
+	}
+	
 	public static boolean remove(VirtualSign sign) {
 		return remove(sign.getBlock());
 	}
 	public static boolean remove(Block b) {
-		return virtualSigns.remove(new BlockLocation(b)) != null;
+		synchronized (virtualSigns) {
+			return virtualSigns.remove(new BlockLocation(b)) != null;
+		}
 	}
 	public static void removeAll(World world) {
 		for (VirtualSign vs : getAll()) {
@@ -77,7 +93,7 @@ public class VirtualSign {
 		}
 	}
 	public static void updateAll() {
-		for (VirtualSign sign : virtualSigns.values().toArray(new VirtualSign[0])) {
+		for (VirtualSign sign : getAll()) {
 			sign.update();
 		}
 	}
@@ -109,7 +125,7 @@ public class VirtualSign {
 	private boolean ignorePackets = false;
 	private boolean wasUnloaded = false;
 	
-	public boolean ignorePacket() {
+	boolean ignorePacket() {
 		if (ignorePackets) {
 			return true;
 		} else {
@@ -216,7 +232,7 @@ public class VirtualSign {
 		sign.setFacingDirection(facing);
 		getBlock().setData(sign.getData(), true);
 	}
-		
+	
 	public boolean isLoaded() {
 		return getWorld().isChunkLoaded(getChunkX(), getChunkZ());
 	}
@@ -242,6 +258,14 @@ public class VirtualSign {
 		getLines(player).setChanged();
 	}
 		
+	public static void invalidateAll(Player player) {
+		synchronized (virtualSigns) {
+			for (VirtualSign vs : virtualSigns.values()) {
+				if (vs.isInRange(player)) vs.invalidate(player);
+			}
+		}
+	}
+	
 	public void update() {
 		this.update(false);
 	}
@@ -263,7 +287,7 @@ public class VirtualSign {
 		//Check for realtime changes to the text
 		boolean realtimechange = false;
 		for (int i = 0; i < 4; i++) {
-			if (this.oldlines[i] != this.sign.getLine(i)) {
+			if (!this.oldlines[i].equals(this.sign.getLine(i))) {
 				realtimechange = true;
 				this.oldlines[i] = this.sign.getLine(i);
 			}

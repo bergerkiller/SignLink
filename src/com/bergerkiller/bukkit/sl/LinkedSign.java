@@ -61,12 +61,12 @@ public class LinkedSign {
 	private ArrayList<VirtualSign> prevSigns = new ArrayList<VirtualSign>();
 	
 	public void updateText(String... forplayers){
-		setText(this.oldtext, false, forplayers);
+		setText(this.oldtext, forplayers);
 	}
 	public String getText() {
 		return this.oldtext;
 	}
-	public void setText(String value, boolean global, String... forplayers) {	
+	public void setText(String value, String... forplayers) {	
 		oldtext = value;
 		if (!SignLink.updateSigns) return; 
 		ArrayList<VirtualSign> signs = getSigns();
@@ -85,8 +85,7 @@ public class LinkedSign {
 				color = Util.getColor(startline.charAt(i), color);
 			}
 		}
-		
-		
+				
 		ArrayList<String> bits = new ArrayList<String>();
 		ChatColor prevcolor = color;
 		String lastbit = "";
@@ -125,17 +124,13 @@ public class LinkedSign {
 			lastbit += " ";
 		}
 		bits.add(lastbit);
-						
+				
 		//Set the signs
 		int index = 0;
 		for (VirtualSign sign : signs) {
 			if (index == bits.size()) {
 				//clear the sign
-				if (!global && (forplayers == null || forplayers.length == 0)) {
-					sign.setDefaultLine(this.line, "");
-				} else {
-					sign.setLine(this.line, "", forplayers);
-				}
+				sign.setLine(this.line, "", forplayers);
 			} else {
 				String line = sign.getRealLine(this.line);
 				if (index == 0 && signs.size() == 1) {
@@ -175,11 +170,7 @@ public class LinkedSign {
 					//A sign in the middle, simply set it
 					line = bits.get(index);
 				}
-				if (!global && (forplayers == null || forplayers.length == 0)) {
-					sign.setDefaultLine(this.line, line);
-				} else {
-					sign.setLine(this.line, line, forplayers);
-				}
+				sign.setLine(this.line, line, forplayers);
 				index++;
 			}
 		}
@@ -282,8 +273,26 @@ public class LinkedSign {
 				start = nextSign(start);
 				if (start != null) {
 					VirtualSign sign = VirtualSign.get(start);
-					if (sign.getRealLine(this.line).contains("%")) {
-						if (prevSigns.size() > 0) start = null;
+					String realline = sign.getRealLine(this.line);
+					int index = realline.indexOf('%');
+					if (index != -1) {
+						if (prevSigns.size() > 0) {
+							//allow?
+							if (index == 0 && index == realline.length() - 1) {
+								//the only char on the sign - allowed
+							} else if (index == 0) {
+								//all left - space to the right?
+								if (realline.charAt(index + 1) != ' ') break;
+							} else if (index == realline.length() - 1) {
+								//all right - space to the left?
+								if (realline.charAt(index - 1) != ' ') break;
+							} else {
+								//centered - surrounded by spaces?
+								if (realline.charAt(index - 1) != ' ') break;
+								if (realline.charAt(index + 1) != ' ') break;
+							}
+							start = null;
+						}
 					}
 					prevSigns.add(sign);
 				} else {

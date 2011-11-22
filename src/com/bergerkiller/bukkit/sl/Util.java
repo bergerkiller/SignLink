@@ -159,7 +159,6 @@ public class Util {
 				//Get in between the two %
 				varname = line.substring(perstart + 1, perend);
 			}
-			varname = varname.trim();
 			if (!varname.equals("")) {
 				if (!varname.contains(" ")) {
 					return varname;
