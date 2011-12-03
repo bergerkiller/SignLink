@@ -98,7 +98,7 @@ public class SLBlockListener extends BlockListener {
 					SignChangeEvent event = (SignChangeEvent) getArg(0);
 					if (event.isCancelled()) return;
 					//General stuff...
-					boolean allowvar = event.getPlayer().hasPermission("signlink.addsign");
+					boolean allowvar = Permission.has(event.getPlayer(), "addsign");
 					if (!VirtualSign.exists(event.getBlock())) {
 						VirtualSign.add(event.getBlock(), event.getLines());
 					}

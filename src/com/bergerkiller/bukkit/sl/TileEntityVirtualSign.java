@@ -31,9 +31,9 @@ public class TileEntityVirtualSign extends TileEntitySign {
     public void b(NBTTagCompound nbttagcompound) {
     	//Was complaining about ID <> class mapping issues
         nbttagcompound.setString("id", "Sign");
-        nbttagcompound.a("x", this.x);
-        nbttagcompound.a("y", this.y);
-        nbttagcompound.a("z", this.z);
+        nbttagcompound.setInt("x", this.x);
+        nbttagcompound.setInt("y", this.y);
+        nbttagcompound.setInt("z", this.z);
         nbttagcompound.setString("Text1", this.lines[0]);
         nbttagcompound.setString("Text2", this.lines[1]);
         nbttagcompound.setString("Text3", this.lines[2]);
@@ -41,7 +41,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
     }
 	
     @Override
-	public Packet l() {
+	public Packet k() {
 		//Instead of letting the game do this
 		//WE manage all packages!
 		Block b = this.world.getWorld().getBlockAt(x, y, z);
@@ -52,7 +52,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
 			}
 			return null;
 		} else {
-			return super.l();
+			return super.k();
 		}
 	}
 	

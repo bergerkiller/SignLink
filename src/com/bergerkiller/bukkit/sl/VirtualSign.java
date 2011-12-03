@@ -26,6 +26,7 @@ public class VirtualSign {
 		virtualSigns = new HashMap<BlockLocation, VirtualSign>();
 	}
 	public static VirtualSign add(Block b, String[] lines) {
+		if (virtualSigns == null) return null;
 		BlockLocation at = new BlockLocation(b);
 		VirtualSign vsign = new VirtualSign();
 		vsign.sign = Util.getSign(b);
@@ -46,8 +47,8 @@ public class VirtualSign {
 		return add(b, null);
 	}
 	public static VirtualSign get(Location at) {
+		if (virtualSigns == null) return null;
 		synchronized (virtualSigns) {
-			if (virtualSigns == null) return null;
 			BlockLocation loc = new BlockLocation(at);
 			if (Util.isSign(at)) {
 				VirtualSign sign = virtualSigns.get(loc);
@@ -63,6 +64,7 @@ public class VirtualSign {
 		return get(b.getLocation());
 	}
 	public static VirtualSign[] getAll() {
+		if (virtualSigns == null) return null;
 		synchronized (virtualSigns) {
 			return virtualSigns.values().toArray(new VirtualSign[0]);
 		}
@@ -72,6 +74,7 @@ public class VirtualSign {
 		return exists(at.getBlock());
 	}
 	public static boolean exists(Block at) {
+		if (virtualSigns == null) return false;
 		synchronized (virtualSigns) {
 			return virtualSigns.containsKey(new BlockLocation(at));
 		}
@@ -81,6 +84,7 @@ public class VirtualSign {
 		return remove(sign.getBlock());
 	}
 	public static boolean remove(Block b) {
+		if (virtualSigns == null) return false;
 		synchronized (virtualSigns) {
 			return virtualSigns.remove(new BlockLocation(b)) != null;
 		}

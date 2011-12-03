@@ -4,6 +4,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -27,12 +28,18 @@ public class SignLink extends JavaPlugin {
 	
 	public static boolean updateSigns = false;
 	public static boolean allowSignEdit = true;
+	public static boolean usePermissions = false;
 
 	private SLBlockListener blockListener = new SLBlockListener();
 	private SLLowBlockListener blockListenerLow = new SLLowBlockListener();
 	private SLPlayerListener playerListener = new SLPlayerListener();
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
+	
+	private static Logger logger = Logger.getLogger("Minecraft");
+	public static void log(Level level, String message) {
+		logger.log(level, "[MyWorlds] " + message);
+	}
 	
 	public void loadValues() {
 		Configuration values = new Configuration(this.getDataFolder() + File.separator + "values.yml");
@@ -101,6 +108,7 @@ public class SignLink extends JavaPlugin {
 		config.load();
 		String timeFormat = config.parse("timeFormat", "H:mm:ss");
 		String dateFormat = config.parse("dateFormat", "yyyy.MM.dd");
+		usePermissions = config.parse("usePermissions", false);
 		try {
 			this.timeFormat = new SimpleDateFormat(timeFormat);
 		} catch (IllegalArgumentException ex) {
@@ -193,6 +201,7 @@ public class SignLink extends JavaPlugin {
 		for (Player p : getServer().getOnlinePlayers()) {
 			updatePlayerName(p);
 		}
+		Permission.init(this);
 		
 		Util.log(Level.INFO, " version " + this.getDescription().getVersion() + " is enabled!");
 	}
@@ -232,6 +241,7 @@ public class SignLink extends JavaPlugin {
 		
 		Variables.deinit();
 		VirtualSign.deinit();
+		Permission.deinit();
 		Util.log(Level.INFO, " is disabled!");
 	}
 	
@@ -254,7 +264,7 @@ public class SignLink extends JavaPlugin {
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String cmdLabel, String[] args) {
 		if (cmdLabel.equalsIgnoreCase("togglesignupdate")) {
-			if (!(sender instanceof Player) || ((Player) sender).hasPermission("signlink.toggleupdate")) {
+			if (!(sender instanceof Player) || Permission.has((Player) sender, "toggleupdate")) {
 				updateSigns = !updateSigns;
 				if (updateSigns) {
 					sender.sendMessage("Signs are now being updated!");
@@ -263,7 +273,7 @@ public class SignLink extends JavaPlugin {
 				}
 			}
 		} else if (cmdLabel.equalsIgnoreCase("reloadsignlink")) {
-			if (!(sender instanceof Player) || ((Player) sender).hasPermission("signlink.reload")) {
+			if (!(sender instanceof Player) || Permission.has((Player) sender, "reload")) {
 				loadValues();
 				sender.sendMessage("SignLink reloaded the Variable values");
 			}
@@ -275,7 +285,7 @@ public class SignLink extends JavaPlugin {
 					args = Util.remove(args, 0);
 					if (cmdLabel.equalsIgnoreCase("edit") || cmdLabel.equalsIgnoreCase("add")) {
 						if (args.length >= 1) {
-							if (p.hasPermission("signlink.edit.*") || p.hasPermission("signlink.edit." + args[0])) {
+							if (Permission.hasGlobal(p, "edit.", args[0])) {
 								VariableEdit edit = new VariableEdit(Variables.get(args[0]));
 								edit.players = new String[args.length - 1];
 								for (int i = 1; i < args.length; i++) {
