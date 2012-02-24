@@ -10,8 +10,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -29,16 +27,12 @@ public class SignLink extends JavaPlugin {
 	public static boolean updateSigns = false;
 	public static boolean allowSignEdit = true;
 	public static boolean usePermissions = false;
-
-	private SLBlockListener blockListener = new SLBlockListener();
-	private SLLowBlockListener blockListenerLow = new SLLowBlockListener();
-	private SLPlayerListener playerListener = new SLPlayerListener();
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
 	
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
-		logger.log(level, "[MyWorlds] " + message);
+		logger.log(level, "[SignLink] " + message);
 	}
 	
 	public void loadValues() {
@@ -92,13 +86,8 @@ public class SignLink extends JavaPlugin {
 	public void onEnable() {
 		plugin = this;
 		PluginManager pm = this.getServer().getPluginManager();
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListenerLow, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
+		pm.registerEvents(new SLBlockListener(), this);
+		pm.registerEvents(new SLLowBlockListener(), this);
 
 		getCommand("togglesignupdate").setExecutor(this);
 		getCommand("reloadsignlink").setExecutor(this);

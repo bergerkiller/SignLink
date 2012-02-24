@@ -3,12 +3,14 @@ package com.bergerkiller.bukkit.sl;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.event.block.BlockListener;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
 
-public class SLLowBlockListener extends BlockListener {
+public class SLLowBlockListener implements Listener {
 	
-	@Override
+	@EventHandler(priority = EventPriority.LOW)
 	public void onSignChange(SignChangeEvent event) {
 		if (!event.isCancelled()) {
 			//Get the ACTUAL sign being edited :)
