@@ -10,8 +10,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.ItemStack;
@@ -19,11 +21,11 @@ import org.bukkit.inventory.ItemStack;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
-public class SLBlockListener extends BlockListener {
+public class SLBlockListener implements Listener {
 	public static HashMap<Location, Location> editedSigns = new HashMap<Location, Location>();
 	public static HashSet<Location> stopAutoColor = new HashSet<Location>();
 	
-	@Override
+	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if (Util.isSign(event.getBlockPlaced())) {
 			if (Util.isSign(event.getBlockAgainst())) {
@@ -87,7 +89,7 @@ public class SLBlockListener extends BlockListener {
 		Util.sendPacket(forPlayer, new Packet130UpdateSign(x, y, z, lines));
 	}
 		
-	@Override
+	@EventHandler(priority = EventPriority.NORMAL)
 	public void onSignChange(SignChangeEvent event) {
 		if (!event.isCancelled()) {			
 			//Convert colors
@@ -135,7 +137,7 @@ public class SLBlockListener extends BlockListener {
 		}
 	}
 		
-	@Override
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (!event.isCancelled()) {
 			Variables.removeLocation(event.getBlock());
