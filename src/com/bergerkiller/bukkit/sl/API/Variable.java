@@ -109,6 +109,10 @@ public class Variable {
 	    }
 		return new GroupVariable(vars, this);
 	}
+	
+	public boolean isUsedByPlugin() {
+		return Variables.isUsedByPlugin(this.name);
+	}
 		
 	public void update(LinkedSign sign) {
     	sign.setText(this.defaultticker.current());

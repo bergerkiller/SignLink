@@ -3,7 +3,7 @@ package com.bergerkiller.bukkit.sl.API;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.bergerkiller.bukkit.sl.Configuration;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 
 public class Ticker {
 	
@@ -65,16 +65,16 @@ public class Ticker {
 		Pause p = new Pause();
 		p.delay = delay;
 		p.duration = duration;
-		pauses.add(p);
+		this.pauses.add(p);
 	}
 	public void clearPauses() {
 		this.pauses.clear();
 	}
 	
  	private boolean countNext() {
-		counter += 1;
-		if (counter == interval) {
-			counter = 0;
+		this.counter++;
+		if (this.counter >= this.interval) {
+			this.counter = 0;
 			return true;
 		} else {
 			return false;
@@ -86,12 +86,10 @@ public class Ticker {
  		if (isPaused()) {
  			return current();
  		}
- 		if (mode == TickMode.LEFT) {
- 			return this.left();
- 		} else if (mode == TickMode.RIGHT) {
- 			return this.right();
- 		} else {
- 			return this.current();
+ 		switch (this.mode) {
+ 		case LEFT : return this.left();
+ 		case RIGHT : return this.right();
+ 		default : return this.current();
  		}
  	}
  	 	
@@ -102,16 +100,13 @@ public class Ticker {
    boolean update() {
     	if (this.checked) return false;
     	this.checked = true;
- 		if (!countNext()) return false;
- 		if (isPaused()) return false;
- 		if (mode == TickMode.LEFT) {
- 		    this.left();
- 		} else if (mode == TickMode.RIGHT) {
- 			this.right();
- 		} else {
- 			return false;
+ 		if (!this.countNext()) return false;
+ 		if (this.isPaused()) return false;
+ 		switch (this.mode) {
+ 		case LEFT : this.left(); return true;
+ 		case RIGHT : this.right(); return true;
+ 		default : return false;
  		}
- 		return true;
     }
  	
  	public void reset(String value) {
@@ -125,17 +120,17 @@ public class Ticker {
  		}
  	}
  	
- 	public void load(Configuration config, String root) {
- 		String tickmode = config.getString(root + ".ticker", "NONE");
+ 	public void load(ConfigurationNode node) {
+ 		String tickmode = node.get("ticker", "NONE");
  		if (tickmode.equalsIgnoreCase("LEFT")) {
  			this.mode = TickMode.LEFT;
  		} else if (tickmode.equalsIgnoreCase("RIGHT")) {
  			this.mode = TickMode.RIGHT;
  		}
- 		this.interval = config.getInt(root + ".tickerInterval", (int) this.interval);
- 		if (config.isSet(root + ".tickerInterval")) {
- 			List<Integer> delays = config.getListOf(root + ".pauseDelays");
- 			List<Integer> durations = config.getListOf(root + ".pauseDurations");
+ 		this.interval = node.get("tickerInterval", (int) this.interval);
+ 		if (node.contains("tickerInterval")) {
+ 			List<Integer> delays = node.getList("pauseDelays", Integer.class);
+ 			List<Integer> durations = node.getList("pauseDurations", Integer.class);
  			if (delays.size() == durations.size()) {
  				for (int i = 0; i < delays.size(); i++) {
  					int delay = delays.get(i);
@@ -145,16 +140,16 @@ public class Ticker {
  			}
  		}
  	}
- 	public void save(Configuration config, String root) {
+ 	public void save(ConfigurationNode node) {
  		if (this.mode != TickMode.NONE) {
- 			config.set(root + ".ticker", this.mode.toString());
+ 			node.set("ticker", this.mode.toString());
  		} else {
- 			config.set(root + ".ticker", null);
+ 			node.set("ticker", null);
  		}
  		if (this.interval != 1) {
- 			config.set(root + ".tickerInterval", (int) this.interval);
+ 			node.set("tickerInterval", (int) this.interval);
  		} else {
- 			config.set(root + ".tickerInterval", null);
+ 			node.set("tickerInterval", null);
  		}
  		List<Integer> delays = null;
  		List<Integer> durations = null;
@@ -166,20 +161,22 @@ public class Ticker {
  	 	    	durations.add(p.duration);
  	 	    }
  		}
- 	    config.set(root + ".pauseDelays", delays);
- 	    config.set(root + ".pauseDurations", durations);
+ 	    node.set("pauseDelays", delays);
+ 	    node.set("pauseDurations", durations);
  	}
 	
 	public String current() {
 		return this.value;
 	}
 	public String left() {
+		if (this.value.length() <= 1) return this.value;
 		char c = this.value.charAt(0);
 		this.value = this.value.substring(1) + c;
 		if (c == '§') return left();
 		return this.value;
 	}
 	public String right() {
+		if (this.value.length() <= 1) return this.value;
 		char c = this.value.charAt(this.value.length() - 1);
 		this.value = c + this.value.substring(0, this.value.length() - 1);
 		if (c == '§') return right();

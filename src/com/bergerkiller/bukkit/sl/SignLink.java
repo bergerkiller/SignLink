@@ -1,20 +1,21 @@
 package com.bergerkiller.bukkit.sl;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.Event.Priority;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.permissions.PermissionDefault;
 
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.PluginBase;
+import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.sl.API.GroupVariable;
 import com.bergerkiller.bukkit.sl.API.PlayerVariable;
 import com.bergerkiller.bukkit.sl.API.TickMode;
@@ -23,26 +24,22 @@ import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 
-public class SignLink extends JavaPlugin {
+public class SignLink extends PluginBase {
+	public SignLink() {
+		super(1818, 1846);
+	}
+
 	public static SignLink plugin;
 	
 	public static boolean updateSigns = false;
 	public static boolean allowSignEdit = true;
 	public static boolean usePermissions = false;
 
-	private SLBlockListener blockListener = new SLBlockListener();
-	private SLLowBlockListener blockListenerLow = new SLLowBlockListener();
-	private SLPlayerListener playerListener = new SLPlayerListener();
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
-	
-	private static Logger logger = Logger.getLogger("Minecraft");
-	public static void log(Level level, String message) {
-		logger.log(level, "[MyWorlds] " + message);
-	}
-	
+		
 	public void loadValues() {
-		Configuration values = new Configuration(this.getDataFolder() + File.separator + "values.yml");
+		FileConfiguration values = new FileConfiguration(this, "values.yml");
 		if (!values.exists()) {			
 			values.set("test.ticker", "LEFT");
 			values.set("test.tickerInterval", 3);
@@ -52,33 +49,30 @@ public class SignLink extends JavaPlugin {
 			values.save();
 		}
 		values.load();
-		for (String key : values.getKeys(false)) {
-			Variable var = Variables.get(key);
-			var.setDefault(values.getString(key + ".value", "%" + key + "%"));
-			//the default ticker
-			var.getDefaultTicker().load(values, key);
-			for (String player : values.getKeys(key + ".forPlayers")) {
-				String root = key + ".forPlayers." + player;
-				String value = values.getString(root + ".value", null);
-				PlayerVariable pvar = var.forPlayer(player);
+		for (ConfigurationNode node : values.getNodes()) {
+			Variable var = Variables.get(node.getName());
+			var.setDefault(node.get("value", "%" + var.getName() + "%"));
+			var.getDefaultTicker().load(node);
+			for (ConfigurationNode forplayer : node.getNode("forPlayers").getNodes()) {
+				String value = forplayer.get("value", String.class, null);
+				PlayerVariable pvar = var.forPlayer(forplayer.getName());
 				if (value != null) pvar.set(value);
-				pvar.getTicker().load(values, root);
+				pvar.getTicker().load(forplayer);
 			}
 		}
-	}
-	
+	}	
 	public void saveValues() {
-		Configuration values = new Configuration(this.getDataFolder() + File.separator + "values.yml");
+		FileConfiguration values = new FileConfiguration(this, "values.yml");
 		for (Variable var : Variables.all()) {
-			String key = var.getName();
-			if (Variables.isUsedByPlugin(key)) continue;
-			values.set(key + ".value", var.getDefault());
-			var.getDefaultTicker().save(values, key);
+			if (var.isUsedByPlugin()) continue;
+			ConfigurationNode node = values.getNode(var.getName());
+			node.set("value", var.getDefault());
+			var.getDefaultTicker().save(node);
 			for (PlayerVariable pvar : var.forAll()) {
-				String root = key + ".forPlayers." + pvar.getPlayer();
-				values.set(root + ".value", pvar.get());
+				ConfigurationNode forplayer = node.getNode("forPlayers").getNode(pvar.getPlayer());
+				forplayer.set("value", pvar.get());
 				if (!pvar.isTickerShared()) {
-					pvar.getTicker().save(values, root);
+					pvar.getTicker().save(forplayer);
 				}
 			}
 		}
@@ -89,37 +83,27 @@ public class SignLink extends JavaPlugin {
 		Variables.get("playername").forPlayer(p).set(p.getName());
 	}
 	
-	public void onEnable() {
+	public void enable() {
 		plugin = this;
-		PluginManager pm = this.getServer().getPluginManager();
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListenerLow, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
+		this.register(SLListener.class);
+		this.register("togglesignupdate", "reloadsignlink", "variable");
 
-		getCommand("togglesignupdate").setExecutor(this);
-		getCommand("reloadsignlink").setExecutor(this);
-		getCommand("variable").setExecutor(this);
-		
-		Configuration config = new Configuration(this);
+		FileConfiguration config = new FileConfiguration(this);
 		config.load();
-		String timeFormat = config.parse("timeFormat", "H:mm:ss");
-		String dateFormat = config.parse("dateFormat", "yyyy.MM.dd");
-		usePermissions = config.parse("usePermissions", false);
+		String timeFormat = config.get("timeFormat", "H:mm:ss");
+		String dateFormat = config.get("dateFormat", "yyyy.MM.dd");
+		usePermissions = config.get("usePermissions", false);
 		try {
 			this.timeFormat = new SimpleDateFormat(timeFormat);
 		} catch (IllegalArgumentException ex) {
-			Util.log(Level.WARNING, "Time format: " + timeFormat + " has not been recognized!");
+			log(Level.WARNING, "Time format: " + timeFormat + " has not been recognized!");
 			timeFormat = "H:mm:ss";
 			this.timeFormat = new SimpleDateFormat(timeFormat);
 		}
 		try {
 			this.dateFormat = new SimpleDateFormat(dateFormat);
 		} catch (IllegalArgumentException ex) {
-			Util.log(Level.WARNING, "Date format: " + dateFormat + " has not been recognized!");
+			log(Level.WARNING, "Date format: " + dateFormat + " has not been recognized!");
 			dateFormat = "yyyy.MM.dd";
 			this.dateFormat = new SimpleDateFormat(dateFormat);
 		}
@@ -128,45 +112,33 @@ public class SignLink extends JavaPlugin {
 		VirtualSign.init();
 		
 		//Load sign locations from file
-		Variable currvar = null;
-		for (String textline : SafeReader.readAll(this.getDataFolder() + File.separator + "linkedsigns.txt")) {
-			if (textline.startsWith("#")) continue;
-			try {
-				if (currvar != null && textline.startsWith("\t")) {
-				    int namestart = textline.indexOf("\"");
-				    if (namestart != -1) {
-				    	int nameend = textline.indexOf("\"", namestart + 1);
-				    	if (namestart != nameend && nameend != -1) {
-				    		String worldname = textline.substring(namestart + 1, nameend);
-				    		String[] args = textline.substring(nameend + 1).trim().split(" ");
-				    		if (args.length == 5) {
-				    			int x = Integer.parseInt(args[0]);
-				    			int y = Integer.parseInt(args[1]);
-				    			int z = Integer.parseInt(args[2]);
-				    			int line = Integer.parseInt(args[3]);
-				    			Direction direction = Direction.NONE;
-				    			if (args[4].equalsIgnoreCase("LEFT")) {
-				    				direction = Direction.LEFT;
-				    			} else if (args[4].equalsIgnoreCase("RIGHT")) {
-				    				direction = Direction.RIGHT;
-				    			}
-				    			if (line >= 0 && line < 4) {
-					    			currvar.addLocation(worldname, x, y, z, line, direction);
-				    			} else {
-				    				Util.log(Level.WARNING, "Failed to parse line: " + textline);
-				    				Util.log(Level.WARNING, "Line index out of range: " + line);
-				    			}
-				    		}
-				    	}
-				    }
-				} else {
-					currvar = Variables.get(textline);
+		
+		config = new FileConfiguration(this, "linkedsigns.yml");
+		config.load();
+		for (String node : config.getKeys()) {
+			Variable currvar = Variables.get(node);
+			for (String textline : config.getList(node, String.class)) {
+				try {
+					String[] bits = textline.split("_");
+					Direction direction = EnumUtil.parse(Direction.class, bits[bits.length - 1], Direction.NONE);
+					int line = Integer.parseInt(bits[bits.length - 2]);
+	    			int x = Integer.parseInt(bits[bits.length - 5]);
+	    			int y = Integer.parseInt(bits[bits.length - 4]);
+	    			int z = Integer.parseInt(bits[bits.length - 3]);
+	    			StringBuilder worldnameb = new StringBuilder();
+	    			for (int i = 0; i <= bits.length - 6; i++) {
+	    				if (i > 0) worldnameb.append('_');
+	    				worldnameb.append(bits[i]);
+	    			}
+	    			currvar.addLocation(worldnameb.toString(), x, y, z, line, direction);
+				} catch (Exception ex) {
+					log(Level.WARNING, "Failed to parse line: " + textline);
+					ex.printStackTrace();
 				}
-			} catch (Exception ex) {
-				Util.log(Level.WARNING, "Failed to parse line: " + textline);
-				ex.printStackTrace();
 			}
 		}
+		
+
 				
 		//General %time% and %date% update thread
 		timetask = new Task(this) {
@@ -182,59 +154,60 @@ public class SignLink extends JavaPlugin {
 				Variables.get("tps").set(per + "%");
 				prevtpstime = newtime;
 			}
-		};
-		timetask.startRepeating(5, 5, false);
+		}.start(5, 5);
 		
 		loadValues();
 		
 		//Start updating
 		updatetask = new Task(this) {
 			public void run() {
-				Variables.updateTickers();
-				VirtualSign.updateAll();
+				try {
+					Variables.updateTickers();
+					VirtualSign.updateAll();
+				} catch (Throwable t) {
+					log(Level.SEVERE, "An error occured while updating the signs:");
+					t.printStackTrace();
+				}
 			}
-		};
-		updatetask.startRepeating(1L);
-		
+		}.start(1, 1);
+				
 		updateSigns = true;
 		
 		for (Player p : getServer().getOnlinePlayers()) {
 			updatePlayerName(p);
 		}
 		Permission.init(this);
-		
-		Util.log(Level.INFO, " version " + this.getDescription().getVersion() + " is enabled!");
 	}
 	
 	private Task updatetask;
 	private Task timetask;
 		
-	public void onDisable() {
+	public void disable() {
 		Task.stop(timetask);
 		Task.stop(updatetask);
 		
 		//Save sign locations to file
-		SafeWriter writer = new SafeWriter(this.getDataFolder() + File.separator + "linkedsigns.txt");
-		writer.writeLine("# Stores the variables displayed by various signs. Format: ");
-		writer.writeLine("# variablename");
-		writer.writeLine("# \t\"worldname\" x y z line direction");
-		writer.writeLine("# Where the direction can be NONE, LEFT and RIGHT. (line overlap)");
+		FileConfiguration config = new FileConfiguration(this, "linkedsigns.yml");
 		for (String varname : Variables.getNames()) {
-			writer.writeLine(varname);
+			List<String> nodes = config.getList(varname, String.class);
 			for (LinkedSign sign : Variables.get(varname).getSigns()) {
-				String textline = "\t\"" + sign.worldname + "\" ";
-				textline += sign.x + " " + sign.y + " " + sign.z + " " + sign.line;
+				StringBuilder builder = new StringBuilder(40);
+				builder.append(sign.worldname).append('_').append(sign.x);
+				builder.append('_').append(sign.y);
+				builder.append('_').append(sign.z);
+				builder.append('_').append(sign.line);
 				if (sign.direction == Direction.LEFT) {
-					textline += " LEFT";
+					builder.append('_').append("LEFT");
 				} else if (sign.direction == Direction.RIGHT) {
-					textline += " RIGHT";
+					builder.append('_').append("RIGHT");
 				} else {
-					textline += " NONE";
+					builder.append('_').append("NONE");
 				}
-				writer.writeLine(textline);
+				nodes.add(builder.toString());
 			}
+			if (nodes.isEmpty()) config.remove(varname);
 		}
-		writer.close();
+		config.save();
 		
 		//Save variable values and tickers to file
 		this.saveValues();
@@ -242,7 +215,7 @@ public class SignLink extends JavaPlugin {
 		Variables.deinit();
 		VirtualSign.deinit();
 		Permission.deinit();
-		Util.log(Level.INFO, " is disabled!");
+		log(Level.INFO, " is disabled!");
 	}
 	
 	private class VariableEdit {
@@ -262,7 +235,7 @@ public class SignLink extends JavaPlugin {
 	
 	private HashMap<String, VariableEdit> editingvars = new HashMap<String, VariableEdit>();
 	
-	public boolean onCommand(CommandSender sender, Command cmd, String cmdLabel, String[] args) {
+	public boolean command(CommandSender sender, String cmdLabel, String[] args) {
 		if (cmdLabel.equalsIgnoreCase("togglesignupdate")) {
 			if (!(sender instanceof Player) || Permission.has((Player) sender, "toggleupdate")) {
 				updateSigns = !updateSigns;
@@ -282,7 +255,7 @@ public class SignLink extends JavaPlugin {
 				Player p = (Player) sender;
 				if (args.length > 0) {
 					cmdLabel = args[0];
-					args = Util.remove(args, 0);
+					args = StringUtil.remove(args, 0);
 					if (cmdLabel.equalsIgnoreCase("edit") || cmdLabel.equalsIgnoreCase("add")) {
 						if (args.length >= 1) {
 							if (Permission.hasGlobal(p, "edit.", args[0])) {
@@ -434,6 +407,13 @@ public class SignLink extends JavaPlugin {
 			}
 		}
  		return true;
+	}
+	@Override
+	public void permissions() {
+		this.loadPermission("signlink.addsign", PermissionDefault.OP, "Allows you to build signs containing variables");
+		this.loadPermission("signlink.toggleupdate", PermissionDefault.OP, "Allows you to set if signs are being updated or not");
+		this.loadPermission("signlink.reload", PermissionDefault.OP, "Allows you to reload the values.yml");
+		this.loadPermission("signlink.edit.*", PermissionDefault.OP, "Allows you to edit all variables");
 	}
 	
 }

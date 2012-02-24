@@ -13,23 +13,26 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.material.Directional;
 
+import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
+import com.bergerkiller.bukkit.common.BlockMap;
+
 public class VirtualSign {
-	private static HashMap<BlockLocation, VirtualSign> virtualSigns;
+	private static BlockMap<VirtualSign> virtualSigns;
 	public static void deinit() {
 		virtualSigns.clear();
 		virtualSigns = null;
 	}
 	public static void init() {
-		virtualSigns = new HashMap<BlockLocation, VirtualSign>();
+		virtualSigns = new BlockMap<VirtualSign>();
 	}
 	public static VirtualSign add(Block b, String[] lines) {
 		if (virtualSigns == null) return null;
-		BlockLocation at = new BlockLocation(b);
 		VirtualSign vsign = new VirtualSign();
-		vsign.sign = Util.getSign(b);
+		vsign.sign = BlockUtil.getSign(b);
 		if (lines == null || lines.length < 4) {
 		    lines = vsign.sign.getLines();
 		}
@@ -39,7 +42,7 @@ public class VirtualSign {
 			vsign.oldlines[i] = vsign.sign.getLine(i);
 		}
 		synchronized (virtualSigns) {
-			virtualSigns.put(at, vsign);
+			virtualSigns.put(b, vsign);
 		}
 		return vsign;
 	}
@@ -49,13 +52,13 @@ public class VirtualSign {
 	public static VirtualSign get(Location at) {
 		if (virtualSigns == null) return null;
 		synchronized (virtualSigns) {
-			BlockLocation loc = new BlockLocation(at);
-			if (Util.isSign(at)) {
-				VirtualSign sign = virtualSigns.get(loc);
+			Block b = at.getBlock();
+			if (BlockUtil.isSign(b)) {
+				VirtualSign sign = virtualSigns.get(b);
 				if (sign == null || !sign.isValid()) sign = add(at.getBlock());
 				return sign;
 			} else {
-				virtualSigns.remove(loc);
+				virtualSigns.remove(b);
 				return null;
 			}
 		}
@@ -76,7 +79,7 @@ public class VirtualSign {
 	public static boolean exists(Block at) {
 		if (virtualSigns == null) return false;
 		synchronized (virtualSigns) {
-			return virtualSigns.containsKey(new BlockLocation(at));
+			return virtualSigns.containsKey(at);
 		}
 	}
 	
@@ -86,7 +89,7 @@ public class VirtualSign {
 	public static boolean remove(Block b) {
 		if (virtualSigns == null) return false;
 		synchronized (virtualSigns) {
-			return virtualSigns.remove(new BlockLocation(b)) != null;
+			return virtualSigns.remove(b) != null;
 		}
 	}
 	public static void removeAll(World world) {
@@ -101,15 +104,16 @@ public class VirtualSign {
 			sign.update();
 		}
 	}
-	public static void forcedUpdate(Player forplayer, long delay) {
-		Task t = new Task(forplayer) {
+	public static void forcedUpdate(final Player forplayer, long delay) {
+		if (forplayer == null) return;
+		new Task(SignLink.plugin) {
 			public void run() {
-				VirtualSign.forcedUpdate((Player) getArg(0));
+				forcedUpdate(forplayer);
 			}
-		};
-		t.startDelayed(delay);
+		}.start(delay);
 	}
 	public static void forcedUpdate(Player forplayer) {
+		if (forplayer == null) return;
 		Iterator<VirtualSign> iter = virtualSigns.values().iterator();
 		while (iter.hasNext()) {
 			iter.next().update(forplayer);
@@ -241,7 +245,7 @@ public class VirtualSign {
 		return getWorld().isChunkLoaded(getChunkX(), getChunkZ());
 	}
 	public boolean isValid() {
-		return Util.isSign(getBlock());
+		return BlockUtil.isSign(getBlock()) && this.sign.getLines() != null;
 	}
 	public boolean isInRange(Player player) {
 		return isInRange(player.getLocation());
@@ -279,12 +283,16 @@ public class VirtualSign {
 			return;
 		} else if (wasUnloaded) {
 			Block b = this.getBlock();
-			if (!Util.isSign(b)) {
+			if (!BlockUtil.isSign(b)) {
 				this.remove();
 				return;
 			}
-			this.sign = Util.getSign(b);
+			this.sign = BlockUtil.getSign(b);
 			wasUnloaded = false;
+		}
+		if (!this.isValid()) {
+			this.remove();
+			return;
 		}
 		//Allow packets to be sent (after a tick)
 		this.ignorePackets = false;
@@ -309,28 +317,24 @@ public class VirtualSign {
 				}
 			}
 		}
-		if (this.isValid()) {
-			//Replace the entity if this is needed
-			TileEntityVirtualSign.replace(getX(), getY(), getZ(), getWorld());
-			for (Player player : getWorld().getPlayers()) {
-				if (forced) {
-					update(player);
-				} else {
-					VirtualLines lines = getLines(player);
-					if (isInRange(player)) {
-						if (outofrange.remove(lines) || lines.hasChanged()) {
-							this.update(lines, player);
-						}
-					} else {
-						outofrange.add(lines);
+		//Replace the entity if this is needed
+		TileEntityVirtualSign.replace(getX(), getY(), getZ(), getWorld());
+		for (Player player : getWorld().getPlayers()) {
+			if (forced) {
+				update(player);
+			} else {
+				VirtualLines lines = getLines(player);
+				if (isInRange(player)) {
+					if (outofrange.remove(lines) || lines.hasChanged()) {
+						this.update(lines, player);
 					}
+				} else {
+					outofrange.add(lines);
 				}
 			}
-			for (VirtualLines lines : playerlines.values()) {
-				lines.setChanged(false);
-			}
-		} else {
-			this.remove();
+		}
+		for (VirtualLines lines : playerlines.values()) {
+			lines.setChanged(false);
 		}
 	}
 

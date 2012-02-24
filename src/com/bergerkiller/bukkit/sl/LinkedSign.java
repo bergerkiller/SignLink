@@ -11,6 +11,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
+
 public class LinkedSign {	
 	public LinkedSign(String worldname, int x, int y, int z, int lineAt, Direction direction) {
 		this.worldname = worldname;
@@ -27,7 +30,7 @@ public class LinkedSign {
 		this.z = from.getLocation().getBlockZ();
 		this.line = line;
 		this.direction = Direction.NONE;
-		if (Util.isSign(from)) {
+		if (BlockUtil.isSign(from)) {
 			VirtualSign sign = VirtualSign.get(from);
 			String text = sign.getRealLine(line);
 			int peri = text.indexOf("%");
@@ -187,7 +190,7 @@ public class LinkedSign {
 	
 	private HashSet<Location> loopCheck = new HashSet<Location>();
 	private Block nextSign(Block from) {
-		BlockFace face = Util.getFacing(from);
+		BlockFace face = BlockUtil.getFacing(from);
 		switch (face) {
 		case NORTH : face = BlockFace.EAST; break;
 		case EAST : face = BlockFace.SOUTH; break;
@@ -198,12 +201,12 @@ public class LinkedSign {
 			face = face.getOppositeFace();
 		}
 		Block next = from.getRelative(face);
-		if (!Util.isSign(next)) {
+		if (!BlockUtil.isSign(next)) {
 			//Jumping a gap?
 			boolean found = false;
-			for (BlockFace f : Util.getFaces(true)) {
+			for (BlockFace f : FaceUtil.attachedFacesDown) {
 				Block next2 = next.getRelative(f);
-				if (Util.isSign(next2)) {
+				if (BlockUtil.isSign(next2)) {
 					next = next2;
 					found = true;
 					break;
@@ -263,7 +266,7 @@ public class LinkedSign {
 		updateSignOrder = false;
 				
 		//Regenerate old signs and return
-		if (Util.isSign(start)) {
+		if (BlockUtil.isSign(start)) {
 			loopCheck.clear();
 			prevSigns = new ArrayList<VirtualSign>();
 			prevSigns.add(VirtualSign.get(start));

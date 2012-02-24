@@ -4,6 +4,8 @@ import net.minecraft.server.Packet130UpdateSign;
 
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
+
 public class VirtualLines {
 	private String[] lines;
 	private boolean changed = false;
@@ -39,7 +41,7 @@ public class VirtualLines {
 	}
 	
 	public void updateSign(Player player, int x, int y, int z) {
-		if (SignLink.updateSigns) {
+		if (SignLink.updateSigns && player != null) {
 			String[] lines = new String[4];
 			for (int i = 0; i < 4; i++) {
 				if (this.lines[i].length() > 15) {
@@ -48,7 +50,7 @@ public class VirtualLines {
 					lines[i] = this.lines[i];
 				}
 			}
-			Util.sendPacket(player, new Packet130UpdateSign(x, y, z, lines));
+			PacketUtil.sendPacket(player, new Packet130UpdateSign(x, y, z, lines), true);
 		}
 	}
 	

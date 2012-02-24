@@ -1,7 +1,8 @@
 name: SignLink
 main: com.bergerkiller.bukkit.sl.SignLink
-version: 1.13
+version: 1.16
 author: bergerkiller
+depend: [BKCommonLib]
 description: Plugin that manages the display of variables on signs in various ways
 commands:
     togglesignupdate:
@@ -14,16 +15,3 @@ commands:
         description: Handles variables
         usage: See development page
         aliases: [var]
-permissions:
-    signlink.addsign:
-        description: Allows you to build signs containing variables
-        default: op
-    signlink.toggleupdate:
-        description: Allows you to set if signs are being updated or not
-        default: op
-    signlink.reload:
-        description: Allows you to reload the values.yml
-        default: op
-    signlink.edit.*:
-        description: Allows you to edit all variables
-        default: op

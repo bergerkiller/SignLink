@@ -15,13 +15,13 @@ public class Permission {
 		if (SignLink.usePermissions) {
 			Plugin permissionsPlugin = plugin.getServer().getPluginManager().getPlugin("Permissions");
 			if (permissionsPlugin == null) {
-				SignLink.log(Level.WARNING, "Permission system not detected, defaulting to build-in permissions!");
+				SignLink.plugin.log(Level.WARNING, "Permission system not detected, defaulting to build-in permissions!");
 			} else {
 				permissionHandler = ((Permissions) permissionsPlugin).getHandler();
-				SignLink.log(Level.INFO, "Found and will use permissions plugin "+((Permissions)permissionsPlugin).getDescription().getFullName());
+				SignLink.plugin.log(Level.INFO, "Found and will use permissions plugin "+((Permissions)permissionsPlugin).getDescription().getFullName());
 			}
 		} else {
-			SignLink.log(Level.INFO, "Using build-in 'Bukkit SuperPerms' as permissions plugin!");;
+			SignLink.plugin.log(Level.INFO, "Using build-in 'Bukkit SuperPerms' as permissions plugin!");;
 		}
 	}
 	public static void deinit() {
