@@ -41,7 +41,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
     }
 	
     @Override
-	public Packet k() {
+	public Packet d() {
 		//Instead of letting the game do this
 		//WE manage all packages!
 		Block b = this.world.getWorld().getBlockAt(x, y, z);
@@ -52,7 +52,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
 			}
 			return null;
 		} else {
-			return super.k();
+			return super.d();
 		}
 	}
 	

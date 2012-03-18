@@ -2,17 +2,24 @@ package com.bergerkiller.bukkit.sl.API;
 
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.sl.LinkedSign;
 
 public class SignAddEvent extends Event implements Cancellable {
-	private static final long serialVersionUID = 8131553986500815222L;
+    private static final HandlerList handlers = new HandlerList();
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }	
+	
 	private boolean cancelled = false;
 	private Variable var;
 	private LinkedSign sign;
 	
 	public SignAddEvent(Variable to, LinkedSign sign) {
-		super("SignAddEvent");
 		this.var = to;
 		this.sign = sign;
 	}

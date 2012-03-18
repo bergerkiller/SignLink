@@ -2,9 +2,17 @@ package com.bergerkiller.bukkit.sl.API;
 
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 
 public class VariableChangeEvent extends Event implements Cancellable {
-	private static final long serialVersionUID = -7712965743389224793L;
+    private static final HandlerList handlers = new HandlerList();
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
+    
 	private boolean cancelled = false;
 	private String newvalue;
 	private Variable variable;
@@ -12,7 +20,6 @@ public class VariableChangeEvent extends Event implements Cancellable {
 	private VariableChangeType type;
 
 	public VariableChangeEvent(Variable variable, String newvalue, PlayerVariable[] players, VariableChangeType type) {
-		super("VariableChangeEvent");
 		this.newvalue = newvalue;
 		this.variable = variable;
 		this.players = players;

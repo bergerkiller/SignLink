@@ -1,16 +1,23 @@
 package com.bergerkiller.bukkit.sl.API;
 
 import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 
 import com.bergerkiller.bukkit.sl.LinkedSign;
 
 public class SignRemoveEvent extends Event {
-	private static final long serialVersionUID = 7922584671220983146L;
+    private static final HandlerList handlers = new HandlerList();
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
+	
 	private Variable var;
 	private LinkedSign sign;
 	
 	public SignRemoveEvent(Variable from, LinkedSign sign) {
-		super("SignRemoveEvent");
 		this.var = from;
 		this.sign = sign;
 	}

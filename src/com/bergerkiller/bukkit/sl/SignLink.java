@@ -25,10 +25,6 @@ import com.bergerkiller.bukkit.sl.API.Variables;
 import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 
 public class SignLink extends PluginBase {
-	public SignLink() {
-		super(1818, 1846);
-	}
-
 	public static SignLink plugin;
 	
 	public static boolean updateSigns = false;
