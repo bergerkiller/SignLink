@@ -89,6 +89,7 @@ public class SignLink extends PluginBase {
 		String timeFormat = config.get("timeFormat", "H:mm:ss");
 		String dateFormat = config.get("dateFormat", "yyyy.MM.dd");
 		usePermissions = config.get("usePermissions", false);
+		allowSignEdit = config.get("allowSignEdit", true);
 		try {
 			this.timeFormat = new SimpleDateFormat(timeFormat);
 		} catch (IllegalArgumentException ex) {

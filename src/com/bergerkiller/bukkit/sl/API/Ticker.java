@@ -11,7 +11,9 @@ public class Ticker {
 	String[] players;
 	boolean checked;
 	
-	private String value;	
+	private String value;
+	private String realValue = "";
+	private char preColor;
 	private ArrayList<Pause> pauses = new ArrayList<Pause>();
 	private int pauseindex = 0;
 	public long interval = 1;
@@ -21,6 +23,8 @@ public class Ticker {
 	public Ticker(String initialvalue) {
 		this.value = initialvalue;
 		this.players = null;
+		this.realValue = this.value;
+		this.preColor = '0';
 	}
 	public Ticker(String initialvalue, String player) {
 		this(initialvalue, new String[] {player});
@@ -28,6 +32,8 @@ public class Ticker {
 	public Ticker(String initialvalue, String[] players) {
 		this.value = initialvalue;
 		this.players = players;
+		this.realValue = this.value;
+		this.preColor = '0';
 	}
 	
 	private Pause getNextPause() {
@@ -166,21 +172,34 @@ public class Ticker {
  	}
 	
 	public String current() {
-		return this.value;
+		return this.realValue;
 	}
 	public String left() {
 		if (this.value.length() <= 1) return this.value;
-		char c = this.value.charAt(0);
-		this.value = this.value.substring(1) + c;
-		if (c == '§') return left();
-		return this.value;
+		StringBuilder builder = new StringBuilder(this.value);
+		char c = builder.charAt(0);
+		builder.delete(0, 1).append(c);
+		if (c == '§') {
+			//change pre color
+			this.preColor = builder.charAt(0);
+			builder.delete(0, 1).append(this.preColor);
+		}
+		
+		this.value = builder.toString();
+		if (this.preColor == '0') {
+			this.realValue = value;
+		} else {
+			this.realValue = builder.insert(0, '§').insert(1, preColor).toString();
+		}
+		return this.realValue;
 	}
 	public String right() {
 		if (this.value.length() <= 1) return this.value;
 		char c = this.value.charAt(this.value.length() - 1);
 		this.value = c + this.value.substring(0, this.value.length() - 1);
 		if (c == '§') return right();
-		return this.value;
+		this.realValue = this.value;
+		return this.realValue;
 	}
 	
 	
@@ -203,6 +222,7 @@ public class Ticker {
 
 	public Ticker clone() {
 		Ticker t = new Ticker(this.value, this.players);
+		t.preColor = this.preColor;
 		t.pauseindex = this.pauseindex;
 		t.interval = this.interval;
 		t.counter = this.counter;

@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -34,15 +35,15 @@ public class SLListener implements Listener {
 	
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockPlace(BlockPlaceEvent event) {
+		if (!SignLink.allowSignEdit) return;
 		if (BlockUtil.isSign(event.getBlockPlaced())) {
 			if (BlockUtil.isSign(event.getBlockAgainst())) {
 				//Sign on sign placement
 				//Get the sign before we possible break it
 				VirtualSign sign = VirtualSign.get(event.getBlockAgainst());
-				//Is the player allowed to break (edit) this sign?
-				BlockBreakEvent breakEvent = new BlockBreakEvent(event.getBlockAgainst(), event.getPlayer());
-				SignLink.plugin.getServer().getPluginManager().callEvent(breakEvent);
-				if (!breakEvent.isCancelled()) {
+				//Is the player allowed to break (edit) this sign?				
+				BlockBreakEvent breakEvent = new BlockBreakEvent(event.getBlockAgainst(), event.getPlayer(), new ArrayList<ItemStack>());
+				if (!CommonUtil.callEvent(breakEvent).isCancelled()) {
 					final Block placed = event.getBlockPlaced();
 					final Player player = event.getPlayer();
 					//Player can edit this sign.
@@ -52,10 +53,6 @@ public class SLListener implements Listener {
 					for (int i = 0; i < 4; i++) {
 						lines[i] = sign.getRealLine(i).replace('§', '&');
 					}
-							
-					//Hide the old sign from the user
-					//Without this the sign doesn't update for some reason
-					Util.hideBlock(event.getBlockAgainst());
 					
 					//Update the sign for the player
 					new Task(SignLink.plugin) {
@@ -89,7 +86,7 @@ public class SLListener implements Listener {
 		int x = signblock.getLocation().getBlockX();
 		int y = signblock.getLocation().getBlockY();
 		int z = signblock.getLocation().getBlockZ();
-		PacketUtil.sendPacket(forPlayer, new Packet130UpdateSign(x, y, z, lines), true);
+		PacketUtil.sendPacket(forPlayer, new Packet130UpdateSign(x, y, z, lines), false);
 	}
 		
 	@EventHandler(priority = EventPriority.HIGHEST)
