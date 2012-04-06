@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.sl;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,7 +14,6 @@ import org.bukkit.material.Directional;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 import com.bergerkiller.bukkit.common.BlockMap;
@@ -132,6 +130,7 @@ public class VirtualSign {
 	private HashSet<VirtualLines> outofrange = new HashSet<VirtualLines>();
 	private boolean ignorePackets = false;
 	private boolean wasUnloaded = false;
+	private int signcheckcounter = 0;
 	
 	boolean ignorePacket() {
 		if (ignorePackets) {
@@ -162,6 +161,7 @@ public class VirtualSign {
 		VirtualLines lines = playerlines.get(playerName);
 		if (lines == null) {
 			lines = new VirtualLines(defaultlines.get());
+			lines.setChanged(true);
 			playerlines.put(playerName, lines);
 		}
 		return lines;
@@ -259,6 +259,10 @@ public class VirtualSign {
 		return dx < maxdistance && dy < maxdistance && dz < maxdistance;
 	}
 	
+	public String toString() {
+		return "VirtualSign {" + this.getX() + ", " + this.getY() + ", " + this.getZ() + ", " + this.getWorld().getName() + "}";
+	}
+	
 	public void invalidate(Player player) {
 		getLines(player).setChanged();
 	}
@@ -277,7 +281,7 @@ public class VirtualSign {
 	public void update() {
 		this.update(false);
 	}
-	public void update(boolean forced) {	
+	public void update(boolean forced) {			
 		if (!this.isLoaded()) {
 			wasUnloaded = true;
 			return;
@@ -293,32 +297,42 @@ public class VirtualSign {
 		if (!this.isValid()) {
 			this.remove();
 			return;
+		} else {
+			//update the sign if needed (just in case the tile got swapped or destroyed?)
+			if (TileEntityVirtualSign.replace(this.getX(), this.getY(), this.getZ(), this.getWorld()) || signcheckcounter++ % 20 == 0) {
+				Block b = this.getBlock();
+				if (!BlockUtil.isSign(b)) {
+					this.remove();
+					return;
+				}
+				this.sign = BlockUtil.getSign(b);
+			}
 		}
 		//Allow packets to be sent (after a tick)
 		this.ignorePackets = false;
-		//Check for realtime changes to the text
-		boolean realtimechange = false;
+		
+		//real-time changes to the text
 		for (int i = 0; i < 4; i++) {
 			if (!this.oldlines[i].equals(this.sign.getLine(i))) {
-				realtimechange = true;
+				Block signblock = this.getBlock();
+				String varname = Util.getVarName(this.oldlines[i]);
+				if (varname != null) {
+					Variables.get(varname).removeLocation(signblock, i);
+				}
 				this.oldlines[i] = this.sign.getLine(i);
-			}
-		}
-		if (realtimechange) {
-			//Actual lines changed...this sign needs to be re-added
-			this.playerlines.clear();
-			for (int i = 0; i < 4; i++) {
-				setLine(i, this.oldlines[i]);
-			}
-			ArrayList<Variable> variables = new ArrayList<Variable>();
-			if (Variables.find(null, variables, this.getLocation())) {
-				for (Variable var : variables) {
-					var.updateAll();
+				this.setLine(i, this.oldlines[i]);
+				varname = Util.getVarName(this.oldlines[i]);
+				if (varname != null) {
+					Variables.get(varname).addLocation(signblock, i);
 				}
 			}
 		}
-		//Replace the entity if this is needed
-		TileEntityVirtualSign.replace(getX(), getY(), getZ(), getWorld());
+		
+		if (this.getLines().hasChanged()) {
+			forced = true;
+			this.getLines().setChanged(false);
+		}
+		
 		for (Player player : getWorld().getPlayers()) {
 			if (forced) {
 				update(player);
@@ -327,6 +341,7 @@ public class VirtualSign {
 				if (isInRange(player)) {
 					if (outofrange.remove(lines) || lines.hasChanged()) {
 						this.update(lines, player);
+						lines.setChanged(false);
 					}
 				} else {
 					outofrange.add(lines);

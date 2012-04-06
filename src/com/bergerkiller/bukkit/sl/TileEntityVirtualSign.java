@@ -10,12 +10,19 @@ import net.minecraft.server.TileEntity;
 import net.minecraft.server.TileEntitySign;
 
 public class TileEntityVirtualSign extends TileEntitySign {
-	public static void replace(int x, int y, int z, World w) {
+	public static boolean replace(int x, int y, int z, World w) {
 		net.minecraft.server.World world = ((CraftWorld) w).getHandle();
 		TileEntity t = world.getTileEntity(x, y, z);
-		if (t != null && t.getClass().equals(TileEntitySign.class)) {
-			world.setTileEntity(x, y, z, new TileEntityVirtualSign((TileEntitySign) t));
+		if (t != null) {
+			if (t instanceof TileEntityVirtualSign) {
+				return false;
+			} else if (t instanceof TileEntitySign) {
+				TileEntityVirtualSign tevs = new TileEntityVirtualSign((TileEntitySign) t);
+				world.setTileEntity(x, y, z, tevs);
+				return true;
+			}
 		}
+		return true; //not found, need something done here!
 	}
 	
 	public TileEntityVirtualSign(TileEntitySign source) {

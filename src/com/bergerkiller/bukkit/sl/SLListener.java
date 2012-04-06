@@ -42,7 +42,7 @@ public class SLListener implements Listener {
 				//Get the sign before we possible break it
 				VirtualSign sign = VirtualSign.get(event.getBlockAgainst());
 				//Is the player allowed to break (edit) this sign?				
-				BlockBreakEvent breakEvent = new BlockBreakEvent(event.getBlockAgainst(), event.getPlayer(), new ArrayList<ItemStack>());
+				BlockBreakEvent breakEvent = new BlockBreakEvent(event.getBlockAgainst(), event.getPlayer());
 				if (!CommonUtil.callEvent(breakEvent).isCancelled()) {
 					final Block placed = event.getBlockPlaced();
 					final Player player = event.getPlayer();
@@ -113,7 +113,7 @@ public class SLListener implements Listener {
 								if (var.addLocation(event.getBlock(), i)) {
 									varnames.add(varname);
 								} else {
-									event.getPlayer().sendMessage(ChatColor.RED + "Failed to create a sign linking to variable '" + var + "'!");
+									event.getPlayer().sendMessage(ChatColor.RED + "Failed to create a sign linking to variable '" + varname + "'!");
 								}
 							} else {
 								event.getPlayer().sendMessage(ChatColor.DARK_RED + "You don't have permission to use dynamic text on signs!");
@@ -181,5 +181,5 @@ public class SLListener implements Listener {
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		VirtualSign.invalidateAll(event.getPlayer());
 	}
-	
+
 }

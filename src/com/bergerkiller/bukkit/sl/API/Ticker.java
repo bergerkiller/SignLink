@@ -103,7 +103,7 @@ public class Ticker {
  		return this.players == null || this.players.length != 1;
  	}
  	
-   boolean update() {
+	boolean update() {
     	if (this.checked) return false;
     	this.checked = true;
  		if (!this.countNext()) return false;
@@ -119,6 +119,7 @@ public class Ticker {
  		this.pauseindex = 0;
  		this.counter = 0;
  		this.value = value;
+ 		this.realValue = value;
  		for (Pause p : this.pauses) {
  			p.currentdelay = 0;
  			p.currentduration = 0;

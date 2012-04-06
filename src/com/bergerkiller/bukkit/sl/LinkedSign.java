@@ -248,8 +248,14 @@ public class LinkedSign {
 	public void updateSignOrder() {
 		this.updateSignOrder = true;
 	}
-	
+		
 	public ArrayList<VirtualSign> getSigns() {
+		return this.getSigns(true);
+	}
+	public ArrayList<VirtualSign> getSigns(boolean validate) {
+		if (!validate) {
+			return this.prevSigns;
+		}
 		Block start = getStartBlock();
 		//Unloaded chunk?
 		if (start == null) {
