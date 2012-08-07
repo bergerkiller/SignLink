@@ -4,6 +4,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftWorld;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+
 import net.minecraft.server.NBTTagCompound;
 import net.minecraft.server.Packet;
 import net.minecraft.server.TileEntity;
@@ -30,7 +32,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
 		this.x = source.x;
 		this.y = source.y;
 		this.z = source.z;
-		this.world = source.world;
+		this.world = BlockUtil.getWorld(source);
 		this.lines = source.lines;
 	}
 	
@@ -48,7 +50,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
     }
 	
     @Override
-	public Packet d() {
+	public Packet e() {
 		//Instead of letting the game do this
 		//WE manage all packages!
 		Block b = this.world.getWorld().getBlockAt(x, y, z);
@@ -59,7 +61,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
 			}
 			return null;
 		} else {
-			return super.d();
+			return super.e();
 		}
 	}
 	
