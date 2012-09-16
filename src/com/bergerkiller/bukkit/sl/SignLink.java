@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.sl.API.GroupVariable;
 import com.bergerkiller.bukkit.sl.API.PlayerVariable;
 import com.bergerkiller.bukkit.sl.API.TickMode;
@@ -33,7 +34,12 @@ public class SignLink extends PluginBase {
 
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
-		
+
+	@Override
+	public int getMinimumLibVersion() {
+		return 1;
+	}
+
 	public void loadValues() {
 		FileConfiguration values = new FileConfiguration(this, "values.yml");
 		if (!values.exists()) {			
@@ -141,8 +147,8 @@ public class SignLink extends PluginBase {
 		timetask = new Task(this) {
 			private long prevtpstime = System.currentTimeMillis();
 			public void run() {
-				Variables.get("time").set(Util.now(SignLink.plugin.timeFormat));
-				Variables.get("date").set(Util.now(SignLink.plugin.dateFormat));
+				Variables.get("time").set(TimeUtil.now(SignLink.plugin.timeFormat));
+				Variables.get("date").set(TimeUtil.now(SignLink.plugin.dateFormat));
 				long newtime = System.currentTimeMillis();
 				float ticktime = (float) (newtime - prevtpstime) / 5000;
 				if (ticktime == 0) ticktime = 1;
@@ -212,7 +218,6 @@ public class SignLink extends PluginBase {
 		Variables.deinit();
 		VirtualSign.deinit();
 		Permission.deinit();
-		log(Level.INFO, " is disabled!");
 	}
 	
 	private class VariableEdit {

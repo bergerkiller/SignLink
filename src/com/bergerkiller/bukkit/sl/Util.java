@@ -1,8 +1,5 @@
 package com.bergerkiller.bukkit.sl;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -51,7 +48,7 @@ public class Util {
 		}
 		return def;
 	}
-	
+
 	public static String getVarName(String line) {
 		int perstart = line.indexOf("%");
 		if (perstart != -1) {
@@ -84,15 +81,4 @@ public class Util {
 		}
 		return null;
 	}
-	
-	/*
-	 * See http://www.rgagnon.com/javadetails/java-0106.html
-	 */
-	public static String now(String dateformat) {
-		return now(new SimpleDateFormat(dateformat));
-	}
-	public static String now(SimpleDateFormat format) {
-		return format.format(Calendar.getInstance().getTime()).trim();
-	}
-	    	
 }
