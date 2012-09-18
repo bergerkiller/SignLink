@@ -90,14 +90,13 @@ public class SLListener implements Listener {
 	}
 		
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onSignChange(SignChangeEvent event) {
+	public void onSignChange(final SignChangeEvent event) {
 		if (!event.isCancelled()) {			
 			//Convert colors
 			Util.replaceColors(event.getLines());
-			
-			new Task(SignLink.plugin, event) {
+
+			new Task(SignLink.plugin) {
 				public void run() {
-					SignChangeEvent event = arg(0, SignChangeEvent.class);
 					if (event.isCancelled()) return;
 					//General stuff...
 					boolean allowvar = Permission.has(event.getPlayer(), "addsign");
