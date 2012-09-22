@@ -37,7 +37,7 @@ public class VirtualSign {
 		vsign.defaultlines = new VirtualLines(lines);
 		vsign.playerlines = new HashMap<String, VirtualLines>();
 		for (int i = 0; i < 4; i++) {
-			vsign.oldlines[i] = vsign.sign.getLine(i);
+			vsign.oldlines[i] = lines[i];
 		}
 		synchronized (virtualSigns) {
 			virtualSigns.put(b, vsign);
