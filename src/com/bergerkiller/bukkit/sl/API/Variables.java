@@ -8,7 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.LinkedSign;
 import com.bergerkiller.bukkit.sl.Util;
 import com.bergerkiller.bukkit.sl.VirtualSign;
@@ -85,7 +85,7 @@ public class Variables {
 		return get(Util.getVarName(sign.getRealLine(line)));
 	}
 	public static Variable get(Block signblock, int line) {
-		if (BlockUtil.isSign(signblock)) {
+		if (MaterialUtil.ISSIGN.get(signblock)) {
 			return get(VirtualSign.get(signblock), line);
 		}
 		return null;

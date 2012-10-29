@@ -13,6 +13,7 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 
 public class LinkedSign {	
 	public LinkedSign(String worldname, int x, int y, int z, int lineAt, Direction direction) {
@@ -30,7 +31,7 @@ public class LinkedSign {
 		this.z = from.getLocation().getBlockZ();
 		this.line = line;
 		this.direction = Direction.NONE;
-		if (BlockUtil.isSign(from)) {
+		if (MaterialUtil.ISSIGN.get(from)) {
 			VirtualSign sign = VirtualSign.get(from);
 			String text = sign.getRealLine(line);
 			int peri = text.indexOf("%");
@@ -201,12 +202,12 @@ public class LinkedSign {
 			face = face.getOppositeFace();
 		}
 		Block next = from.getRelative(face);
-		if (!BlockUtil.isSign(next)) {
+		if (!MaterialUtil.ISSIGN.get(next)) {
 			//Jumping a gap?
 			boolean found = false;
 			for (BlockFace f : FaceUtil.attachedFacesDown) {
 				Block next2 = next.getRelative(f);
-				if (BlockUtil.isSign(next2)) {
+				if (MaterialUtil.ISSIGN.get(next2)) {
 					next = next2;
 					found = true;
 					break;
@@ -270,9 +271,9 @@ public class LinkedSign {
 			return prevSigns;
 		}
 		updateSignOrder = false;
-				
+
 		//Regenerate old signs and return
-		if (BlockUtil.isSign(start)) {
+		if (MaterialUtil.ISSIGN.get(start)) {
 			loopCheck.clear();
 			prevSigns = new ArrayList<VirtualSign>();
 			prevSigns.add(VirtualSign.get(start));

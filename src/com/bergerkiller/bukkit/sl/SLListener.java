@@ -22,8 +22,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -36,8 +36,8 @@ public class SLListener implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockPlace(BlockPlaceEvent event) {
 		if (!SignLink.allowSignEdit) return;
-		if (BlockUtil.isSign(event.getBlockPlaced())) {
-			if (BlockUtil.isSign(event.getBlockAgainst())) {
+		if (MaterialUtil.ISSIGN.get(event.getBlockPlaced())) {
+			if (MaterialUtil.ISSIGN.get(event.getBlockAgainst())) {
 				//Sign on sign placement
 				//Get the sign before we possible break it
 				VirtualSign sign = VirtualSign.get(event.getBlockAgainst());
@@ -152,7 +152,7 @@ public class SLListener implements Listener {
 			Location alternative = editedSigns.remove(event.getBlock().getLocation());
 			if (alternative != null) {
 				Block b = alternative.getBlock();
-				if (BlockUtil.isSign(b)) {
+				if (MaterialUtil.ISSIGN.get(b)) {
 					//Remove the old one
 					event.getBlock().setTypeId(0);
 					//Cancel

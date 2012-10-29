@@ -14,6 +14,7 @@ import org.bukkit.material.Directional;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 import com.bergerkiller.bukkit.common.BlockMap;
@@ -51,7 +52,7 @@ public class VirtualSign {
 		if (virtualSigns == null) return null;
 		synchronized (virtualSigns) {
 			Block b = at.getBlock();
-			if (BlockUtil.isSign(b)) {
+			if (MaterialUtil.ISSIGN.get(b)) {
 				VirtualSign sign = virtualSigns.get(b);
 				if (sign == null || !sign.isValid()) sign = add(at.getBlock());
 				return sign;
@@ -245,7 +246,7 @@ public class VirtualSign {
 		return getWorld().isChunkLoaded(getChunkX(), getChunkZ());
 	}
 	public boolean isValid() {
-		return BlockUtil.isSign(getBlock()) && this.sign.getLines() != null;
+		return MaterialUtil.ISSIGN.get(getBlock()) && this.sign.getLines() != null;
 	}
 	public boolean isInRange(Player player) {
 		return isInRange(player.getLocation());
@@ -287,7 +288,7 @@ public class VirtualSign {
 			return;
 		} else if (wasUnloaded) {
 			Block b = this.getBlock();
-			if (!BlockUtil.isSign(b)) {
+			if (!MaterialUtil.ISSIGN.get(b)) {
 				this.remove();
 				return;
 			}
@@ -301,7 +302,7 @@ public class VirtualSign {
 			//update the sign if needed (just in case the tile got swapped or destroyed?)
 			if (TileEntityVirtualSign.replace(this.getX(), this.getY(), this.getZ(), this.getWorld()) || signcheckcounter++ % 20 == 0) {
 				Block b = this.getBlock();
-				if (!BlockUtil.isSign(b)) {
+				if (!MaterialUtil.ISSIGN.get(b)) {
 					this.remove();
 					return;
 				}

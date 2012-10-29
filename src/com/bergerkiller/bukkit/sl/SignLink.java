@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.sl.API.GroupVariable;
@@ -37,7 +37,7 @@ public class SignLink extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 1;
+		return 7;
 	}
 
 	public void loadValues() {
@@ -123,7 +123,7 @@ public class SignLink extends PluginBase {
 			for (String textline : config.getList(node, String.class)) {
 				try {
 					String[] bits = textline.split("_");
-					Direction direction = EnumUtil.parse(Direction.class, bits[bits.length - 1], Direction.NONE);
+					Direction direction = ParseUtil.parseEnum(bits[bits.length - 1], Direction.NONE);
 					int line = Integer.parseInt(bits[bits.length - 2]);
 	    			int x = Integer.parseInt(bits[bits.length - 5]);
 	    			int y = Integer.parseInt(bits[bits.length - 4]);
