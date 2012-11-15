@@ -48,9 +48,9 @@ public class TileEntityVirtualSign extends TileEntitySign {
         nbttagcompound.setString("Text3", this.lines[2]);
         nbttagcompound.setString("Text4", this.lines[3]);
     }
-	
+
     @Override
-	public Packet l() {
+	public Packet getUpdatePacket() {
 		//Instead of letting the game do this
 		//WE manage all packages!
 		Block b = this.world.getWorld().getBlockAt(x, y, z);
@@ -61,8 +61,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
 			}
 			return null;
 		} else {
-			return super.l();
+			return super.getUpdatePacket();
 		}
 	}
-	
 }
