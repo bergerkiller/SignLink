@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.LinkedSign;
+import com.bergerkiller.bukkit.sl.SignLink;
 import com.bergerkiller.bukkit.sl.Util;
 import com.bergerkiller.bukkit.sl.VirtualSign;
 
@@ -91,9 +92,14 @@ public class Variables {
 		return null;
 	}
 	public static boolean remove(String name) {
-		return variables.remove(name) != null;
+		Variable var = variables.remove(name);
+		if (var != null) {
+			SignLink.plugin.removeEditing(var);
+			return true;
+		}
+		return false;
 	}
-			
+
 	public static boolean removeLocation(Block signblock) {
 		synchronized (variables) {
 			for (Variable var : all()) {

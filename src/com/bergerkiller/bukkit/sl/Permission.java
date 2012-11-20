@@ -17,7 +17,8 @@ public enum Permission implements IPermissionDefault {
 	ADDSIGN("addsign", PermissionDefault.OP, "Allows you to build signs containing variables"),
 	TOGGLEUPDATE("toggleupdate", PermissionDefault.OP, "Allows you to set if signs are being updated or not"),
 	RELOAD("reload", PermissionDefault.OP, "Allows you to reload the values.yml"),
-	EDIT("edit", PermissionDefault.OP, "Allows you to edit all variables", 1);
+	EDIT("edit", PermissionDefault.OP, "Allows you to edit all variables", 1),
+	GLOBALDELETE("globaldelete", PermissionDefault.OP, "Allows you to delete all variables from the server");
 
 	private final String node;
 	private final String name;

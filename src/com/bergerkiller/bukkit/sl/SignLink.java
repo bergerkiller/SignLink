@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.sl;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -184,7 +185,7 @@ public class SignLink extends PluginBase {
 	
 	private Task updatetask;
 	private Task timetask;
-		
+
 	public void disable() {
 		Task.stop(timetask);
 		Task.stop(updatetask);
@@ -202,7 +203,9 @@ public class SignLink extends PluginBase {
 				builder.append('_').append(sign.direction.toString());
 				nodes.add(builder.toString());
 			}
-			if (nodes.isEmpty()) config.remove(varname);
+			if (nodes.isEmpty()) {
+				config.remove(varname);
+			}
 		}
 		config.save();
 		
@@ -230,6 +233,21 @@ public class SignLink extends PluginBase {
 	}
 
 	private HashMap<String, VariableEdit> editingvars = new HashMap<String, VariableEdit>();
+
+	/**
+	 * Removes a given variable from the player editing map
+	 * 
+	 * @param variable to remove
+	 */
+	public void removeEditing(Variable variable) {
+		// Get rid of all editing players for this variable
+		Iterator<VariableEdit> vars = editingvars.values().iterator();
+		while (vars.hasNext()) {
+			if (vars.next().variable == variable) {
+				vars.remove();
+			}
+		}
+	}
 
 	@Override
 	public boolean command(CommandSender sender, String cmdLabel, String[] args) {
@@ -285,6 +303,36 @@ public class SignLink extends PluginBase {
 				}
 			}
 			builder.send(sender);
+			return true;
+		}
+
+		// Global variable deletion
+		final boolean signcheck = cmdLabel.equalsIgnoreCase("deleteunused");
+		if (cmdLabel.equalsIgnoreCase("deleteall") || signcheck) {
+			Permission.GLOBALDELETE.handle(sender);
+			List<Variable> allVars = new ArrayList<Variable>(Variables.all());
+			if (signcheck) {
+				Iterator<Variable> var = allVars.iterator();
+				while (var.hasNext()) {
+					Variable next = var.next();
+					if (next.isUsedByPlugin() || next.getSigns().length > 0) {
+						var.remove();
+					}
+				}
+			}
+			// Remove
+			if (allVars.isEmpty()) {
+				sender.sendMessage(ChatColor.YELLOW + "No variables were found that could be deleted");
+			} else {
+				for (Variable var : allVars) {
+					Variables.remove(var.getName());
+				}
+				if (allVars.size() == 1) {
+					sender.sendMessage(ChatColor.GREEN + "One variable was deleted: " + allVars.get(0).getName());
+				} else {
+					sender.sendMessage(ChatColor.GREEN + Integer.toString(allVars.size()) + " variables have been deleted!");
+				}
+			}
 			return true;
 		}
 
@@ -404,6 +452,14 @@ public class SignLink extends PluginBase {
 			}
 			t.clearPauses();
 			sender.sendMessage(ChatColor.YELLOW + "Ticker pauses cleared!");
+		} else if (cmdLabel.equalsIgnoreCase("delete")) {
+			if (var.variable.getSigns().length == 0 || args.length > 0 && args[0].equalsIgnoreCase("force")) {
+				Variables.remove(var.variable.getName());
+				sender.sendMessage(ChatColor.GREEN + "Deleted variable '" + var.variable.getName() + "'!");
+			} else {
+				sender.sendMessage(ChatColor.RED + "This variable still contains signs that are displaying it!");
+				sender.sendMessage(ChatColor.YELLOW + "To delete it anyhow, use /variable delete force");
+			}
 		} else if (cmdLabel.equalsIgnoreCase("setticker")) {
 			if (args.length >= 1) {
 				Ticker t;

@@ -15,15 +15,24 @@ commands:
         description: Handles SignLink variables
         usage: |
             /variable list - Lists all variables
+            /variable deleteall - Deletes all variables
+            /variable deleteunused - Deletes all unused variables
             /variable edit - Edit a variable
             /variable forplayers - Edits the variable for given players
             /variable set - Set variable value
             /variable get - Gets variable value
-            /variable setticker - Sets a text anim. ticker            
+            /variable setticker - Sets a text anim. ticker
+            /variable delete - Deletes this variable (if unused)
         aliases: [var]
     variable list:
         description: Lists all variables you can edit
         usage: /variable list
+    variable deleteall:
+        description: Deletes all variables
+        usage: /variable delete
+    variable deleteunused:
+        description: Deletes all unused (not on sign) variables
+        usage: /variable deleteunused
     variable edit:
         description: Changes the variable you are editing
         usage: /variable edit [varname]
@@ -49,3 +58,8 @@ commands:
             /variable setticker [interval] [left/right/none]
             /variable setticker [left/right/none]
             /variable setticker [interval]
+    variable delete:
+        description: Deletes the variable if it is not used
+        usage: |
+            /variable delete - Deletes it if not used
+            /variable delete force - Deletes it even if used
