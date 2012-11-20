@@ -3,35 +3,77 @@ package com.bergerkiller.bukkit.sl.API;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.ChatColor;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.sl.Util;
 
 public class Ticker {
 	//These two are used to check if it is updated
-	String[] players;
+	String[] players = null;
 	boolean checked;
-	private String value;
-	private String realValue = "";
-	private char preColor;
+	private TickedChar[] valueElements;
+	private String value = "";
 	private ArrayList<Pause> pauses = new ArrayList<Pause>();
 	private int pauseindex = 0;
 	public long interval = 1;
 	private long counter = 0;
 	public TickMode mode = TickMode.NONE;
 
-	public Ticker(String initialvalue) {
-		this.value = initialvalue;
-		this.players = null;
-		this.realValue = this.value;
-		this.preColor = '0';
-	}
 	public Ticker(String initialvalue, String player) {
 		this(initialvalue, new String[] {player});
 	}
 	public Ticker(String initialvalue, String[] players) {
-		this.value = initialvalue;
+		this(initialvalue);
 		this.players = players;
-		this.realValue = this.value;
-		this.preColor = '0';
+	}
+	public Ticker(String initialvalue) {
+		this.value = initialvalue;
+	}
+
+	/**
+	 * Represents a single ticked character in the ticker text
+	 */
+	private static class TickedChar {
+		public final char character;
+		public final ChatColor color;
+		public TickedChar(char character, ChatColor color) {
+			this.character = character;
+			this.color = color;
+		}
+
+		public static String getText(TickedChar[] characters) {
+			StringBuilder text = new StringBuilder(characters.length + 20);
+			ChatColor currentColor = null;
+			for (TickedChar c : characters) {
+				if (c.color != currentColor && c.color != null) {
+					currentColor = c.color;
+					text.append(c.color);
+				}
+				text.append(c.character);
+			}
+			return text.toString();
+		}
+
+		public static TickedChar[] getChars(String text) {
+			ChatColor currentColor = null;
+			ArrayList<TickedChar> rval = new ArrayList<TickedChar>(text.length());
+			for (int i = 0; i < text.length(); i++) {
+				char c = text.charAt(i);
+				// Update coloring
+				if (c == StringUtil.CHAT_STYLE_CHAR) {
+					if (i < text.length() - 1) {
+						i++;
+						currentColor = Util.getColor(text.charAt(i), currentColor);
+					}
+					continue;
+				}
+				// New character
+				rval.add(new TickedChar(c, currentColor));
+			}
+			return rval.toArray(new TickedChar[0]);
+		}
 	}
 
 	private Pause getNextPause() {
@@ -86,23 +128,22 @@ public class Ticker {
 			return false;
 		}
 	}
- 	
+ 
  	public String next() {
  		if (!countNext()) return current();
- 		if (isPaused()) {
- 			return current();
+ 		if (!isPaused()) {
+ 	 		switch (this.mode) {
+ 	 	 		case LEFT : this.left(); break;
+ 	 	 		case RIGHT : this.right(); break;
+ 	 	 	}
  		}
- 		switch (this.mode) {
- 		case LEFT : return this.left();
- 		case RIGHT : return this.right();
- 		default : return this.current();
- 		}
+ 		return this.current();
  	}
- 	 	
+
  	boolean isShared() {
  		return this.players == null || this.players.length != 1;
  	}
- 	
+
 	boolean update() {
     	if (this.checked) return false;
     	this.checked = true;
@@ -114,19 +155,19 @@ public class Ticker {
  		default : return false;
  		}
     }
- 	
+ 
  	public void reset(String value) {
  		this.pauseindex = 0;
  		this.counter = 0;
+ 		this.valueElements = TickedChar.getChars(value);
  		this.value = value;
- 		this.realValue = value;
  		for (Pause p : this.pauses) {
  			p.currentdelay = 0;
  			p.currentduration = 0;
  			p.active = false;
  		}
  	}
- 	
+ 
  	public void load(ConfigurationNode node) {
  		String tickmode = node.get("ticker", "NONE");
  		if (tickmode.equalsIgnoreCase("LEFT")) {
@@ -171,39 +212,39 @@ public class Ticker {
  	    node.set("pauseDelays", delays);
  	    node.set("pauseDurations", durations);
  	}
-	
+ 
 	public String current() {
-		return this.realValue;
+		return this.value;
 	}
+
 	public String left() {
-		if (this.value.length() <= 1) return this.value;
-		StringBuilder builder = new StringBuilder(this.value);
-		char c = builder.charAt(0);
-		builder.delete(0, 1).append(c);
-		if (c == '§') {
-			//change pre color
-			this.preColor = builder.charAt(0);
-			builder.delete(0, 1).append(this.preColor);
+		// Translate elements one to the left
+		if (this.valueElements.length >= 2) {
+			TickedChar first = this.valueElements[0];
+			for (int i = 1; i < this.valueElements.length; i++) {
+				this.valueElements[i - 1] = this.valueElements[i];
+			}
+			this.valueElements[this.valueElements.length - 1] = first;
+			// Update
+			this.value = TickedChar.getText(this.valueElements);
 		}
-		
-		this.value = builder.toString();
-		if (this.preColor == '0') {
-			this.realValue = value;
-		} else {
-			this.realValue = builder.insert(0, '§').insert(1, preColor).toString();
-		}
-		return this.realValue;
+		return this.value;
 	}
+
 	public String right() {
-		if (this.value.length() <= 1) return this.value;
-		char c = this.value.charAt(this.value.length() - 1);
-		this.value = c + this.value.substring(0, this.value.length() - 1);
-		if (c == '§') return right();
-		this.realValue = this.value;
-		return this.realValue;
+		// Translate elements one to the right
+		if (this.valueElements.length >= 2) {
+			TickedChar last = this.valueElements[this.valueElements.length - 1];
+			for (int i = this.valueElements.length - 1; i >= 1; i--) {
+				this.valueElements[i] = this.valueElements[i - 1];
+			}
+			this.valueElements[0] = last;
+			// Update
+			this.value = TickedChar.getText(this.valueElements);
+		}
+		return this.value;
 	}
-	
-	
+
 	private class Pause {
 		public int currentdelay = 0;
 		public int delay;
@@ -223,7 +264,6 @@ public class Ticker {
 
 	public Ticker clone() {
 		Ticker t = new Ticker(this.value, this.players);
-		t.preColor = this.preColor;
 		t.pauseindex = this.pauseindex;
 		t.interval = this.interval;
 		t.counter = this.counter;
