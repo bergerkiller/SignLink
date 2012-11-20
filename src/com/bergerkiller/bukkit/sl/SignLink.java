@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.sl;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
@@ -8,10 +9,10 @@ import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.permissions.PermissionDefault;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
@@ -19,7 +20,6 @@ import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.sl.API.GroupVariable;
 import com.bergerkiller.bukkit.sl.API.PlayerVariable;
-import com.bergerkiller.bukkit.sl.API.TickMode;
 import com.bergerkiller.bukkit.sl.API.Ticker;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -199,13 +199,7 @@ public class SignLink extends PluginBase {
 				builder.append('_').append(sign.y);
 				builder.append('_').append(sign.z);
 				builder.append('_').append(sign.line);
-				if (sign.direction == Direction.LEFT) {
-					builder.append('_').append("LEFT");
-				} else if (sign.direction == Direction.RIGHT) {
-					builder.append('_').append("RIGHT");
-				} else {
-					builder.append('_').append("NONE");
-				}
+				builder.append('_').append(sign.direction.toString());
 				nodes.add(builder.toString());
 			}
 			if (nodes.isEmpty()) config.remove(varname);
@@ -234,188 +228,226 @@ public class SignLink extends PluginBase {
 			return this.variable.forGroup(this.players);
 		}
 	}
-	
+
 	private HashMap<String, VariableEdit> editingvars = new HashMap<String, VariableEdit>();
-	
+
+	@Override
 	public boolean command(CommandSender sender, String cmdLabel, String[] args) {
+		// Toggle sign updating on/off
 		if (cmdLabel.equalsIgnoreCase("togglesignupdate")) {
-			if (!(sender instanceof Player) || Permission.has((Player) sender, "toggleupdate")) {
-				updateSigns = !updateSigns;
-				if (updateSigns) {
-					sender.sendMessage("Signs are now being updated!");
-				} else {
-					sender.sendMessage("Signs are now no longer being updated!");
+			Permission.TOGGLEUPDATE.handle(sender);
+			updateSigns = !updateSigns;
+			if (updateSigns) {
+				sender.sendMessage(ChatColor.GREEN + "Signs are now being updated!");
+			} else {
+				sender.sendMessage(ChatColor.YELLOW + "Signs are now no longer being updated!");
+			}
+			return true;
+		}
+		// Reload SignLink configuration
+		if (cmdLabel.equalsIgnoreCase("reloadsignlink")) {
+			Permission.RELOAD.handle(sender);
+			loadValues();
+			sender.sendMessage(ChatColor.GREEN + "SignLink reloaded the Variable values");
+			return true;
+		}
+		// Remaining variable commands
+		if (!cmdLabel.equalsIgnoreCase("variable") && !cmdLabel.equalsIgnoreCase("var")) {
+			return false;
+		} else if (args.length == 0) {
+			sender.sendMessage(ChatColor.RED + "Please specify a sub-command!");
+			sender.sendMessage(ChatColor.YELLOW + "Use /help variable for command help");
+			return true;
+		}
+		// All below commands are sub-commands of /variable
+		// Remove the first argument - it is the sub-command
+		cmdLabel = args[0];
+		args = StringUtil.remove(args, 0);
+
+		// Variable list
+		if (cmdLabel.equalsIgnoreCase("list")) {
+			ArrayList<String> vars = new ArrayList<String>();
+			for (Variable variable : Variables.all()) {
+				if (Permission.EDIT.has(sender, variable.getName())) {
+					vars.add(variable.getName());
 				}
 			}
-		} else if (cmdLabel.equalsIgnoreCase("reloadsignlink")) {
-			if (!(sender instanceof Player) || Permission.has((Player) sender, "reload")) {
-				loadValues();
-				sender.sendMessage("SignLink reloaded the Variable values");
+			MessageBuilder builder = new MessageBuilder();
+			if (vars.isEmpty()) {
+				// None to be listed
+				builder.red("There are no variables to be shown, or you are not allowed to edit them");
+			} else {
+				// List them
+				builder.yellow("There are ").white(vars.size()).yellow(" variables you can edit:").newLine();
+				builder.setIndent(2).setSeparator(ChatColor.WHITE, " / ");
+				for (String name : vars) {
+					builder.append(ChatColor.GREEN, name);
+				}
 			}
-		} else if (cmdLabel.equalsIgnoreCase("variable") || cmdLabel.equalsIgnoreCase("var")) {
-			if (sender instanceof Player) {
-				Player p = (Player) sender;
-				if (args.length > 0) {
-					cmdLabel = args[0];
-					args = StringUtil.remove(args, 0);
-					if (cmdLabel.equalsIgnoreCase("edit") || cmdLabel.equalsIgnoreCase("add")) {
-						if (args.length >= 1) {
-							if (Permission.hasGlobal(p, "edit.", args[0])) {
-								VariableEdit edit = new VariableEdit(Variables.get(args[0]));
-								edit.players = new String[args.length - 1];
-								for (int i = 1; i < args.length; i++) {
-									edit.players[i - 1] = args[i];
-								}
-								editingvars.put(p.getName().toLowerCase(), edit);
-								p.sendMessage(ChatColor.GREEN + "You are now editing variable '" + args[0] + "'");
-								if (edit.players.length > 0) {
-									String msg = ChatColor.YELLOW + "For players:";
-									for (String player : edit.players) {
-										msg += " " + player;
-									}
-								    p.sendMessage(msg);
-								}
-							} else {
-								p.sendMessage(ChatColor.RED + "You don't have permission to use this!");
-								return true;
-							}
-						} else {
-							p.sendMessage(ChatColor.RED + "Please specify a variable name!");
-						}
-					} else {
-						VariableEdit var = editingvars.get(p.getName().toLowerCase());
-						if (var != null) {
-							//Variable property coding here
-							//===============================
-							if (cmdLabel.equalsIgnoreCase("for") || cmdLabel.equalsIgnoreCase("forplayers")) {
-								if (args.length == 0) {
-									var.players = new String[0];
-									p.sendMessage(ChatColor.GREEN + "You are now editing this variable for all players!");
-								} else {
-									var.players = args;
-									p.sendMessage(ChatColor.GREEN + "You are now editing this variable for the selected players!");
-								}
-							} else if (cmdLabel.equalsIgnoreCase("get")) {
-								if (var.global()) {
-									p.sendMessage(ChatColor.YELLOW + "Current value is: " + var.variable.getDefault());
-								} else {
-									p.sendMessage(ChatColor.YELLOW + "Current value is: " + var.variable.get(var.players[0]));
-								}
-							} else if (cmdLabel.equalsIgnoreCase("setdefault") || cmdLabel.equalsIgnoreCase("setdef")) {
-								if (args.length == 0) {
-									var.variable.setDefault("");
-									p.sendMessage(ChatColor.YELLOW + "Default variable value emptied!");
-								} else {
-									String value = "";
-								    for (String part : args) {
-								    	if (value != "") value += " ";
-								    	value += part;
-								    }
-								    value = Util.replaceColors(value);
-								    var.variable.setDefault(value);
-									p.sendMessage(ChatColor.YELLOW + "Default variable value set to '" + value + "'!");
-								}
-							} else if (cmdLabel.equalsIgnoreCase("set")) {
-								if (args.length == 0) {
-									if (var.global()) {
-										var.variable.set("");
-									} else {
-										var.group().set("");
-									}
-									p.sendMessage(ChatColor.YELLOW + "Variable value emptied!");
-								} else {
-									String value = "";
-								    for (String part : args) {
-								    	if (value != "") value += " ";
-								    	value += part;
-								    }
-								    value = Util.replaceColors(value);
-									if (var.global()) {
-										var.variable.set(value);
-									} else {
-										var.group().set(value);
-									}
-									p.sendMessage(ChatColor.YELLOW + "Variable value set to '" + value + "'!");
-								}
-							} else if (cmdLabel.equalsIgnoreCase("clear")) {
-								if (var.global()) {
-									var.variable.clear();
-								} else {
-									var.group().clear();
-								}
-								p.sendMessage(ChatColor.YELLOW + "Variable has been cleared!");
-							} else if (cmdLabel.equals("addpause") || cmdLabel.equalsIgnoreCase("pause")) {
-								if (args.length == 2) {
-									try {
-										int delay = Integer.parseInt(args[0]);
-										int duration = Integer.parseInt(args[1]);
-										Ticker t;
-										if (var.global()) {
-											t = var.variable.getTicker();
-										} else {
-											t = var.group().getTicker();
-										}
-										t.addPause(delay, duration);
-										p.sendMessage(ChatColor.GREEN + "Ticker pause added!");
-									} catch (Exception ex) {
-										p.sendMessage(ChatColor.RED + "Please specify valid pause delay and duration values!");
-									}
-								} else {
-									p.sendMessage(ChatColor.RED + "Please specify the delay and duration for this pause!");
-								}
-							} else if (cmdLabel.equalsIgnoreCase("clearpauses") || cmdLabel.equalsIgnoreCase("clearpause")) {
-								Ticker t;
-								if (var.global()) {
-									t = var.variable.getTicker();
-								} else {
-									t = var.group().getTicker();
-								}
-								t.clearPauses();
-								p.sendMessage(ChatColor.YELLOW + "Ticker pauses cleared!");
-							} else if (cmdLabel.equalsIgnoreCase("setticker")) {
-								if (args.length >= 1) {
-									TickMode mode = TickMode.NONE;
-									if (args[0].equalsIgnoreCase("left")) mode = TickMode.LEFT;
-									if (args[0].equalsIgnoreCase("right")) mode = TickMode.RIGHT;
-									int interval = 1;
-									if (args.length > 1) {
-										try {
-											interval = Integer.parseInt(args[1]);
-										} catch (Exception ex) {}
-									}
-									Ticker t;
-									if (var.global()) {
-										t = var.variable.getTicker();
-									} else {
-										t = var.group().getTicker();
-									}
-									t.mode = mode;
-									t.interval = interval;
-									p.sendMessage(ChatColor.GREEN + "You set a '" + mode.toString().toLowerCase() + "' ticker ticking every " + interval + " ticks!");
-								} else {
-									p.sendMessage(ChatColor.RED + "Please specify the ticker direction!");
-								}
-							}
-							//===============================
-						} else {
-							p.sendMessage(ChatColor.RED + "Please edit or add a variable first!");
-						}
-					}
+			builder.send(sender);
+			return true;
+		}
+
+		// Variable edit
+		if (cmdLabel.equalsIgnoreCase("edit") || cmdLabel.equalsIgnoreCase("add")) {
+			if (args.length >= 1) {
+				Permission.EDIT.handle(sender, args[0]);
+				if (args[0].contains(" ")) {
+					sender.sendMessage(ChatColor.RED + "Variable names can not contain spaces!");
+					return true;
+				}
+				// Add a new Variable editing slot
+				VariableEdit edit = new VariableEdit(Variables.get(args[0]));
+				edit.players = new String[args.length - 1];
+				for (int i = 1; i < args.length; i++) {
+					edit.players[i - 1] = args[i];
+				}
+				if (sender instanceof Player) {
+					editingvars.put(((Player) sender).getName().toLowerCase(), edit);
 				} else {
-					p.sendMessage(ChatColor.RED + "Please specify a sub-command!");
+					editingvars.put(null, edit);
+				}
+				// Handle feedback
+				sender.sendMessage(ChatColor.GREEN + "You are now editing variable '" + args[0] + "'");
+				if (edit.players.length > 0) {
+					sender.sendMessage(ChatColor.YELLOW + "For players: " + StringUtil.combine(" ", edit.players));
 				}
 			} else {
-				sender.sendMessage("This command is only for players!");
+				sender.sendMessage(ChatColor.RED + "Please specify a variable name!");
 			}
+			return true;
+		}
+		// Obtain the currently edited variable
+		VariableEdit var;
+		if (sender instanceof Player) {
+			var = editingvars.get(((Player) sender).getName().toLowerCase());
+		} else {
+			var = editingvars.get(null);
+		}
+		if (var == null) {
+			sender.sendMessage(ChatColor.RED + "Please edit a variable first using /variable edit!");
+			return true;
+		}
+
+		// Sub-commands operating on the editing variables
+		// Variable property coding here
+		if (cmdLabel.equalsIgnoreCase("for") || cmdLabel.equalsIgnoreCase("forplayers")) {
+			var.players = args;
+			if (args.length == 0) {
+				sender.sendMessage(ChatColor.GREEN + "You are now editing this variable for all players!");
+			} else {
+				sender.sendMessage(ChatColor.GREEN + "You are now editing this variable for the selected players!");
+			}
+		} else if (cmdLabel.equalsIgnoreCase("get")) {
+			if (var.global()) {
+				sender.sendMessage(ChatColor.YELLOW + "Current value is: " + ChatColor.BLACK + var.variable.getDefault());
+			} else {
+				sender.sendMessage(ChatColor.YELLOW + "Current value is: " + ChatColor.BLACK + var.variable.get(var.players[0]));
+			}
+		} else if (cmdLabel.equalsIgnoreCase("setdefault") || cmdLabel.equalsIgnoreCase("setdef")) {
+			String value = StringUtil.ampToColor(StringUtil.combine(" ", args));
+			var.variable.setDefault(value);
+			if (args.length == 0) {
+				sender.sendMessage(ChatColor.YELLOW + "Default variable value emptied!");
+			} else {
+			    sender.sendMessage(ChatColor.YELLOW + "Default variable value set to '" + value + "'!");
+			}
+		} else if (cmdLabel.equalsIgnoreCase("set")) {
+			if (args.length == 0) {
+				if (var.global()) {
+					var.variable.set("");
+				} else {
+					var.group().set("");
+				}
+				sender.sendMessage(ChatColor.YELLOW + "Variable value emptied!");
+			} else {
+				String value = StringUtil.ampToColor(StringUtil.combine(" ", args));
+				if (var.global()) {
+					var.variable.set(value);
+				} else {
+					var.group().set(value);
+				}
+				sender.sendMessage(ChatColor.YELLOW + "Variable value set to '" + value + "'!");
+			}
+		} else if (cmdLabel.equalsIgnoreCase("clear")) {
+			if (var.global()) {
+				var.variable.clear();
+			} else {
+				var.group().clear();
+			}
+			sender.sendMessage(ChatColor.YELLOW + "Variable has been cleared!");
+		} else if (cmdLabel.equals("addpause") || cmdLabel.equalsIgnoreCase("pause")) {
+			if (args.length == 2) {
+				try {
+					int delay = Integer.parseInt(args[0]);
+					int duration = Integer.parseInt(args[1]);
+					Ticker t;
+					if (var.global()) {
+						t = var.variable.getTicker();
+					} else {
+						t = var.group().getTicker();
+					}
+					t.addPause(delay, duration);
+					sender.sendMessage(ChatColor.GREEN + "Ticker pause added!");
+				} catch (Exception ex) {
+					sender.sendMessage(ChatColor.RED + "Please specify valid pause delay and duration values!");
+				}
+			} else {
+				sender.sendMessage(ChatColor.RED + "Please specify the delay and duration for this pause!");
+			}
+		} else if (cmdLabel.equalsIgnoreCase("clearpauses") || cmdLabel.equalsIgnoreCase("clearpause")) {
+			Ticker t;
+			if (var.global()) {
+				t = var.variable.getTicker();
+			} else {
+				t = var.group().getTicker();
+			}
+			t.clearPauses();
+			sender.sendMessage(ChatColor.YELLOW + "Ticker pauses cleared!");
+		} else if (cmdLabel.equalsIgnoreCase("setticker")) {
+			if (args.length >= 1) {
+				Ticker t;
+				if (var.global()) {
+					t = var.variable.getTicker();
+				} else {
+					t = var.group().getTicker();
+				}
+				// Swap if reversed order
+				String intervalName = "";
+				String modeName = "";
+				if (ParseUtil.isNumeric(args[0])) {
+					// <interval> <mode>
+					intervalName = args[0];
+					if (args.length > 1) {
+						modeName = args[1];
+					}
+				} else {
+					// <mode> <interval>
+					modeName = args[0];
+					if (args.length > 1) {
+						intervalName = args[1];
+					}
+				}
+				// Set ticker
+				if (!modeName.isEmpty()) {
+					t.mode = ParseUtil.parseEnum(modeName, t.mode);
+				}
+				if (!intervalName.isEmpty()) {
+					t.interval = ParseUtil.parseLong(intervalName, t.interval);
+				}
+				sender.sendMessage(ChatColor.GREEN + "You set a '" + t.mode.toString().toLowerCase() + "' ticker ticking every " + t.interval + " ticks!");
+			} else {
+				sender.sendMessage(ChatColor.RED + "Please specify the ticker direction!");
+			}
+		} else {
+			sender.sendMessage(ChatColor.RED + "Unknown sub-command: " + ChatColor.YELLOW + cmdLabel);
+			sender.sendMessage(ChatColor.YELLOW + "Use /help variable for command help");
 		}
  		return true;
 	}
+
 	@Override
 	public void permissions() {
-		this.loadPermission("signlink.addsign", PermissionDefault.OP, "Allows you to build signs containing variables");
-		this.loadPermission("signlink.toggleupdate", PermissionDefault.OP, "Allows you to set if signs are being updated or not");
-		this.loadPermission("signlink.reload", PermissionDefault.OP, "Allows you to reload the values.yml");
-		this.loadPermission("signlink.edit.*", PermissionDefault.OP, "Allows you to edit all variables");
+		this.loadPermissions(Permission.class);
 	}
-	
 }

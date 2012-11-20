@@ -192,12 +192,7 @@ public class LinkedSign {
 	private HashSet<Location> loopCheck = new HashSet<Location>();
 	private Block nextSign(Block from) {
 		BlockFace face = BlockUtil.getFacing(from);
-		switch (face) {
-		case NORTH : face = BlockFace.EAST; break;
-		case EAST : face = BlockFace.SOUTH; break;
-		case SOUTH : face = BlockFace.WEST; break;
-		case WEST : face = BlockFace.NORTH; break;
-		}
+		face = FaceUtil.rotate(face, 2);
 		if (this.direction == Direction.RIGHT) {
 			face = face.getOppositeFace();
 		}

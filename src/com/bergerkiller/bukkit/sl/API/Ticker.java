@@ -6,11 +6,9 @@ import java.util.List;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 
 public class Ticker {
-	
 	//These two are used to check if it is updated
 	String[] players;
 	boolean checked;
-	
 	private String value;
 	private String realValue = "";
 	private char preColor;
@@ -19,7 +17,7 @@ public class Ticker {
 	public long interval = 1;
 	private long counter = 0;
 	public TickMode mode = TickMode.NONE;
-	
+
 	public Ticker(String initialvalue) {
 		this.value = initialvalue;
 		this.players = null;
@@ -35,9 +33,11 @@ public class Ticker {
 		this.realValue = this.value;
 		this.preColor = '0';
 	}
-	
+
 	private Pause getNextPause() {
-		if (pauses.size() == 0) return null;
+		if (pauses.isEmpty()) {
+			return null;
+		}
 		Pause p = pauses.get(pauseindex);
 
 		//Play the next part as long possible

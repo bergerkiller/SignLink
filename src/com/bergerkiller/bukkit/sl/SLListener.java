@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
@@ -93,10 +94,12 @@ public class SLListener implements Listener {
 	public void onSignChange(final SignChangeEvent event) {
 		if (!event.isCancelled()) {			
 			//Convert colors
-			Util.replaceColors(event.getLines());
+			for (int i = 0; i < event.getLines().length; i++) {
+				event.setLine(i, StringUtil.ampToColor(event.getLine(i)));
+			}
 
 			//General stuff...
-			boolean allowvar = Permission.has(event.getPlayer(), "addsign");
+			boolean allowvar = Permission.ADDSIGN.has(event.getPlayer());
 			final ArrayList<String> varnames = new ArrayList<String>();
 			for (int i = 0; i < 4; i++) {
 				String varname = Util.getVarName(event.getLine(i));
