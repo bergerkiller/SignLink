@@ -166,7 +166,7 @@ public class SLListener implements Listener {
 						for (int i = 0; i < 4; i++) {
 							sign.setRealLine(i, event.getLine(i));
 						}
-						sign.update(true);
+						sign.update();
 				    }
 					return;
 				}

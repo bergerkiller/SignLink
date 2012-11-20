@@ -179,16 +179,16 @@ public class LinkedSign {
 			}
 		}
 	}
-	
-	public void update(boolean forced) {
+
+	public void update() {
 		ArrayList<VirtualSign> signs = getSigns();
 		if (signs != null) {
 			for (VirtualSign sign : signs) {
-				sign.update(forced);
+				sign.update();
 			}
 		}
 	}
-	
+
 	private HashSet<Location> loopCheck = new HashSet<Location>();
 	private Block nextSign(Block from) {
 		BlockFace face = BlockUtil.getFacing(from);

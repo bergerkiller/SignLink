@@ -57,7 +57,7 @@ public class TileEntityVirtualSign extends TileEntitySign {
 		VirtualSign sign = VirtualSign.get(b);
 		if (sign != null) {
 			if (!sign.ignorePacket()) {
-				sign.update(true);
+				sign.update();
 			}
 			return null;
 		} else {

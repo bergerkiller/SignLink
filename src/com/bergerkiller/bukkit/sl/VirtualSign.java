@@ -278,11 +278,8 @@ public class VirtualSign {
 			}
 		}
 	}
-	
-	public void update() {
-		this.update(false);
-	}
-	public void update(boolean forced) {			
+
+	public void update() {			
 		if (!this.isLoaded()) {
 			wasUnloaded = true;
 			return;
@@ -328,25 +325,16 @@ public class VirtualSign {
 				}
 			}
 		}
-		
-		if (this.getLines().hasChanged()) {
-			forced = true;
-			this.getLines().setChanged(false);
-		}
-		
+
 		for (Player player : getWorld().getPlayers()) {
-			if (forced) {
-				update(player);
-			} else {
-				VirtualLines lines = getLines(player);
-				if (isInRange(player)) {
-					if (outofrange.remove(lines) || lines.hasChanged()) {
-						this.update(lines, player);
-						lines.setChanged(false);
-					}
-				} else {
-					outofrange.add(lines);
+			VirtualLines lines = getLines(player);
+			if (isInRange(player)) {
+				if (outofrange.remove(lines) || lines.hasChanged()) {
+					this.update(lines, player);
+					lines.setChanged(false);
 				}
+			} else {
+				outofrange.add(lines);
 			}
 		}
 		for (VirtualLines lines : playerlines.values()) {
