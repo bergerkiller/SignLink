@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.sl;
 
-import net.minecraft.server.Packet130UpdateSign;
+import net.minecraft.server.v1_4_5.Packet130UpdateSign;
 
 import org.bukkit.entity.Player;
 

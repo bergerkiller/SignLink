@@ -14,6 +14,7 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 
 public class LinkedSign {	
 	public LinkedSign(String worldname, int x, int y, int z, int lineAt, Direction direction) {
@@ -84,9 +85,9 @@ public class LinkedSign {
 		//Get the color of the text before this variable
 		ChatColor color = ChatColor.BLACK;
 		for (int i = 0; i < startoffset; i++) {
-			if (startline.charAt(i) == '§') {
+			if (startline.charAt(i) == StringUtil.CHAT_STYLE_CHAR) {
 				i++;
-				color = Util.getColor(startline.charAt(i), color);
+				color = StringUtil.getColor(startline.charAt(i), color);
 			}
 		}
 				
@@ -98,7 +99,7 @@ public class LinkedSign {
 			if (c == '§') {
 				if (i < value.length() - 1) {
 					i++;
-					color = Util.getColor(value.charAt(i), color);
+					color = StringUtil.getColor(value.charAt(i), color);
 				}
 			} else {
 				if (prevcolor != color) {
@@ -200,7 +201,7 @@ public class LinkedSign {
 		if (!MaterialUtil.ISSIGN.get(next)) {
 			//Jumping a gap?
 			boolean found = false;
-			for (BlockFace f : FaceUtil.attachedFacesDown) {
+			for (BlockFace f : FaceUtil.ATTACHEDFACESDOWN) {
 				Block next2 = next.getRelative(f);
 				if (MaterialUtil.ISSIGN.get(next2)) {
 					next = next2;

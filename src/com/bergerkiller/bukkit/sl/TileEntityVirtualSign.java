@@ -1,19 +1,19 @@
 package com.bergerkiller.bukkit.sl;
 
-import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.CraftWorld;
 
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.reflection.classes.TileEntityRef;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.NBTTagCompound;
-import net.minecraft.server.Packet;
-import net.minecraft.server.TileEntity;
-import net.minecraft.server.TileEntitySign;
+import net.minecraft.server.v1_4_5.NBTTagCompound;
+import net.minecraft.server.v1_4_5.Packet;
+import net.minecraft.server.v1_4_5.TileEntity;
+import net.minecraft.server.v1_4_5.TileEntitySign;
+import net.minecraft.server.v1_4_5.World;
 
 public class TileEntityVirtualSign extends TileEntitySign {
-	public static boolean replace(int x, int y, int z, World w) {
-		net.minecraft.server.World world = ((CraftWorld) w).getHandle();
+	public static boolean replace(int x, int y, int z, org.bukkit.World w) {
+		World world = NativeUtil.getNative(w);
 		TileEntity t = world.getTileEntity(x, y, z);
 		if (t != null) {
 			if (t instanceof TileEntityVirtualSign) {
@@ -26,16 +26,16 @@ public class TileEntityVirtualSign extends TileEntitySign {
 		}
 		return true; //not found, need something done here!
 	}
-	
+
 	public TileEntityVirtualSign(TileEntitySign source) {
 		this.b = source.b;
 		this.x = source.x;
 		this.y = source.y;
 		this.z = source.z;
-		this.world = BlockUtil.getWorld(source);
+		this.world = TileEntityRef.world.get(source);
 		this.lines = source.lines;
 	}
-	
+
 	@Override
     public void b(NBTTagCompound nbttagcompound) {
     	//Was complaining about ID <> class mapping issues

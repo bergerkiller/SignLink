@@ -7,7 +7,6 @@ import org.bukkit.ChatColor;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.sl.Util;
 
 public class Ticker {
 	//These two are used to check if it is updated
@@ -65,7 +64,7 @@ public class Ticker {
 				if (c == StringUtil.CHAT_STYLE_CHAR) {
 					if (i < text.length() - 1) {
 						i++;
-						currentColor = Util.getColor(text.charAt(i), currentColor);
+						currentColor = StringUtil.getColor(text.charAt(i), currentColor);
 					}
 					continue;
 				}

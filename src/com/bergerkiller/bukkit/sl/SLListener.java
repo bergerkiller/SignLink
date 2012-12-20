@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import net.minecraft.server.Packet130UpdateSign;
+import net.minecraft.server.v1_4_5.Packet130UpdateSign;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;

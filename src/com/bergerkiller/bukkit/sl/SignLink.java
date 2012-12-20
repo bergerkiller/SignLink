@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
@@ -28,17 +29,15 @@ import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 
 public class SignLink extends PluginBase {
 	public static SignLink plugin;
-	
 	public static boolean updateSigns = false;
 	public static boolean allowSignEdit = true;
 	public static boolean usePermissions = false;
-
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
-
+	
 	@Override
 	public int getMinimumLibVersion() {
-		return 7;
+		return Common.VERSION;
 	}
 
 	public void loadValues() {

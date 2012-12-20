@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.sl;
 
-import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -12,15 +11,6 @@ public class Util {
 		for (Player p : b.getWorld().getPlayers()) {
 			hideBlock(b, p);
 		}
-	}
-
-	public static ChatColor getColor(char code, ChatColor def) {
-		for (ChatColor color : ChatColor.values()) {
-			if (code == color.toString().charAt(1)) {
-				return color;
-			}
-		}
-		return def;
 	}
 
 	public static String getVarName(String line) {
