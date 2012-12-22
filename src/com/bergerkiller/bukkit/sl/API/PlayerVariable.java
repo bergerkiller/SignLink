@@ -2,13 +2,15 @@ package com.bergerkiller.bukkit.sl.API;
 
 import org.bukkit.Bukkit;
 
-public class PlayerVariable {
-
+/**
+ * Represents a Variable value for a single player
+ */
+public class PlayerVariable implements VariableValue {
+	protected String value;
+	protected Ticker ticker;
 	private Variable variable;
-	String value;
 	private String playername;
-	Ticker ticker;
-	
+
 	public PlayerVariable(String playername, Variable variable) {
 		this(playername, variable, variable.getDefault());
 	}
@@ -18,23 +20,32 @@ public class PlayerVariable {
 		this.variable = variable;
 		this.ticker = this.variable.getDefaultTicker();
 	}
-	
+
+	@Override
 	public String get() {
 		return this.value;
 	}
+
+	/**
+	 * Gets the name of the player this player variable belongs to
+	 * 
+	 * @return player name
+	 */
 	public String getPlayer() {
 		return this.playername;
 	}
-			
+
+	@Override
 	public void clear() {
 		this.ticker = this.variable.getDefaultTicker();
 		this.set("%" + this.variable.getName() + "%");
 	}
-	
-	public boolean set(String value) {
+
+	@Override
+	public void set(String value) {
 		//is a change required?
 		if (this.value.equals(value)) {
-			return true;
+			return;
 		}
 		VariableChangeEvent event = new VariableChangeEvent(this.variable, value, new PlayerVariable[] {this}, VariableChangeType.PLAYER);
 		Bukkit.getServer().getPluginManager().callEvent(event);
@@ -42,19 +53,24 @@ public class PlayerVariable {
 			this.value = value;
 			getTicker().reset(value);
 			this.variable.setSigns(value, new String[] {this.playername});
-			return true;
-		} else {
-			return false;
 		}
 	}
 
+	@Override
 	public Variable getVariable() {
 		return this.variable;
 	}
-	
+
+	/**
+	 * Checks whether the ticker of this Player Variable is shared in a group with other players
+	 * 
+	 * @return True if it is shared, False if not
+	 */
 	public boolean isTickerShared() {
 		return this.ticker.isShared();
 	}
+
+	@Override
 	public Ticker getTicker() {
 		if (this.isTickerShared()) {
 			this.ticker = this.ticker.clone();
@@ -63,6 +79,11 @@ public class PlayerVariable {
 		return this.ticker;
 	}
 
+	/**
+	 * Sets the ticker used for this player variable
+	 * 
+	 * @param ticker to set to
+	 */
 	void setTicker(Ticker ticker) {
 		this.ticker = ticker;
 	}

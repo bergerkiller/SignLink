@@ -179,7 +179,6 @@ public class SignLink extends PluginBase {
 		for (Player p : getServer().getOnlinePlayers()) {
 			updatePlayerName(p);
 		}
-		Permission.init(this);
 	}
 	
 	private Task updatetask;
@@ -213,7 +212,6 @@ public class SignLink extends PluginBase {
 		
 		Variables.deinit();
 		VirtualSign.deinit();
-		Permission.deinit();
 	}
 	
 	private class VariableEdit {

@@ -8,10 +8,13 @@ import org.bukkit.ChatColor;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
+/**
+ * Ticks text on a per-tick basis to allow textual animations
+ */
 public class Ticker {
 	//These two are used to check if it is updated
-	String[] players = null;
-	boolean checked;
+	protected String[] players = null;
+	protected boolean checked;
 	private TickedChar[] valueElements;
 	private String value = "";
 	private ArrayList<Pause> pauses = new ArrayList<Pause>();
@@ -103,21 +106,32 @@ public class Ticker {
 
 		return p;
 	}
+
 	private boolean isPaused() {
 		Pause p = getNextPause();
 		return p != null && p.active;
 	}
-	
+
+	/**
+	 * Adds a pause to this ticker
+	 * 
+	 * @param delay in ticks before the pause occurs
+	 * @param duration in ticks of the pause
+	 */
 	public void addPause(int delay, int duration) {
 		Pause p = new Pause();
 		p.delay = delay;
 		p.duration = duration;
 		this.pauses.add(p);
 	}
+
+	/**
+	 * Clears all the ticker pauses
+	 */
 	public void clearPauses() {
 		this.pauses.clear();
 	}
-	
+
  	private boolean countNext() {
 		this.counter++;
 		if (this.counter >= this.interval) {
@@ -128,6 +142,11 @@ public class Ticker {
 		}
 	}
  
+ 	/**
+ 	 * Gets the next ticker value depending on the settings
+ 	 * 
+ 	 * @return Next ticker value
+ 	 */
  	public String next() {
  		if (!countNext()) return current();
  		if (!isPaused()) {
@@ -155,6 +174,11 @@ public class Ticker {
  		}
     }
  
+	/**
+	 * Resets the settings of this ticker
+	 * 
+	 * @param value to set the text to
+	 */
  	public void reset(String value) {
  		this.pauseindex = 0;
  		this.counter = 0;
@@ -167,6 +191,11 @@ public class Ticker {
  		}
  	}
  
+ 	/**
+ 	 * Loads ticker information
+ 	 * 
+ 	 * @param node to load from
+ 	 */
  	public void load(ConfigurationNode node) {
  		String tickmode = node.get("ticker", "NONE");
  		if (tickmode.equalsIgnoreCase("LEFT")) {
@@ -187,6 +216,12 @@ public class Ticker {
  			}
  		}
  	}
+
+ 	/**
+ 	 * Saves this ticker
+ 	 * 
+ 	 * @param node to save in
+ 	 */
  	public void save(ConfigurationNode node) {
  		if (this.mode != TickMode.NONE) {
  			node.set("ticker", this.mode.toString());
@@ -212,10 +247,20 @@ public class Ticker {
  	    node.set("pauseDurations", durations);
  	}
  
+ 	/**
+ 	 * Gets the current value of this ticker
+ 	 * 
+ 	 * @return Current ticker value
+ 	 */
 	public String current() {
 		return this.value;
 	}
 
+	/**
+	 * Gets the next value when ticking the text to the left
+	 * 
+	 * @return Next value
+	 */
 	public String left() {
 		// Translate elements one to the left
 		if (this.valueElements.length >= 2) {
@@ -230,6 +275,11 @@ public class Ticker {
 		return this.value;
 	}
 
+	/**
+	 * Gets the next value when ticking the text to the right
+	 * 
+	 * @return Next value
+	 */
 	public String right() {
 		// Translate elements one to the right
 		if (this.valueElements.length >= 2) {
@@ -250,6 +300,7 @@ public class Ticker {
 		public int currentduration = 0;
 		public int duration;
 		public boolean active = false;
+		@Override
 		public Pause clone() {
 			Pause p = new Pause();
 			p.currentdelay = this.currentdelay;
@@ -261,6 +312,7 @@ public class Ticker {
 		}
 	}
 
+	@Override
 	public Ticker clone() {
 		Ticker t = new Ticker(this.value, this.players);
 		t.pauseindex = this.pauseindex;

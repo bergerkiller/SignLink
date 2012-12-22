@@ -12,60 +12,96 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.sl.LinkedSign;
 import com.bergerkiller.bukkit.sl.VirtualSign;
 
-public class Variable {
+/**
+ * All-encompassing class that stores the information of a single variable
+ */
+public class Variable implements VariableValue {
 	private String defaultvalue;
 	private Ticker defaultticker;
 	private String name;
 	private ArrayList<LinkedSign> boundTo = new ArrayList<LinkedSign>();
 	private HashMap<String, PlayerVariable> playervariables = new HashMap<String, PlayerVariable>();
-	
+
 	Variable(String defaultvalue, String name) {
 		this.defaultvalue = defaultvalue;
 		this.name = name;
 		this.defaultticker = new Ticker(this.defaultvalue);
 	}
-	
+
+	/**
+	 * Gets the name of this Variable
+	 * 
+	 * @return variable name
+	 */
 	public String getName() {
 		return this.name;
 	}
-	
+
+	@Override
 	public void clear() {
 		this.playervariables.clear();
 		this.set("%" + this.name + "%");
 		this.defaultticker = new Ticker(this.defaultvalue);
 	}
-	
-	public Ticker getDefaultTicker() {
-		return this.defaultticker;
-	}
+
+	@Override
 	public Ticker getTicker() {
 		for (PlayerVariable pvar : this.forAll()) {
 			pvar.ticker = this.defaultticker;
 		}
 		return this.defaultticker;
 	}
-	
+
+	/**
+	 * Gets the ticker used for all (new) players that have no specific ticker or value set
+	 * 
+	 * @return Default ticker
+	 */
+	public Ticker getDefaultTicker() {
+		return this.defaultticker;
+	}
+
+	/**
+	 * Gets the default value used for all (new) players that have no specific value set
+	 * 
+	 * @return Default value
+	 */
 	public String getDefault() {
 		return this.defaultvalue;
 	}
+
+	/**
+	 * Gets the Variable value for the player specified
+	 * 
+	 * @param playername to get the variable value of
+	 * @return Player-specific variable value, or the default if none is set
+	 */
 	public String get(String playername) {
-		if (playername == null) return this.getDefault();
-		PlayerVariable pvar = playervariables.get(playername.toLowerCase());
-		if (pvar != null) return pvar.get();
+		if (playername != null) {
+			PlayerVariable pvar = playervariables.get(playername.toLowerCase());
+			if (pvar != null) {
+				pvar.get();
+			}
+		}
 		return this.getDefault();
 	}
+
+	@Override
 	public void set(String value) {
-		if (value == null) value = "%" + this.name + "%";
+		if (value == null) {
+			value = "%" + this.name + "%";
+		}
 		//is a change required?
 		if (this.defaultvalue.equals(value)) {
 			if (this.playervariables.isEmpty()) {
 				return;
 			}
 		}
-		
+
 		VariableChangeEvent event = new VariableChangeEvent(this, value, null, VariableChangeType.GLOBAL);
 		Bukkit.getServer().getPluginManager().callEvent(event);
 		if (!event.isCancelled()) {
@@ -75,6 +111,12 @@ public class Variable {
 			this.setSigns(this.defaultvalue, null);
 		}
 	}
+
+	/**
+	 * Sets the default value for all (new) players that don't have a specific value set
+	 * 
+	 * @param value to set to
+	 */
 	public void setDefault(String value) {
 		if (value == null) value = "%" + this.name + "%";
 		VariableChangeEvent event = new VariableChangeEvent(this, value, null, VariableChangeType.DEFAULT);
@@ -85,13 +127,32 @@ public class Variable {
 			this.updateAll();
 		}
 	}
-	
+
+	/**
+	 * Gets all the individual player variables used by this Variable
+	 * 
+	 * @return Player variables
+	 */
 	public Collection<PlayerVariable> forAll() {
 		return playervariables.values();
 	}
+
+	/**
+	 * Gets a variable specific for a single player
+	 * 
+	 * @param player
+	 * @return Player-specific variable
+	 */
 	public PlayerVariable forPlayer(Player player) {
 		return this.forPlayer(player.getName());
 	}
+
+	/**
+	 * Gets a variable specific for a single player
+	 * 
+	 * @param playername
+	 * @return Player-specific variable
+	 */
 	public PlayerVariable forPlayer(String playername) {
 		PlayerVariable pvar = playervariables.get(playername.toLowerCase());
 		if (pvar == null) {
@@ -100,11 +161,27 @@ public class Variable {
 		}
 		return pvar;
 	}
+
+	/**
+	 * Gets a variable specific for a group of players
+	 * 
+	 * @param player
+	 * @return Player group variable
+	 */
 	public GroupVariable forGroup(Player... players) {
 		String[] playernames = new String[players.length];
-		for (int i = 0; i < players.length; i++) playernames[i] = players[i].getName();
+		for (int i = 0; i < players.length; i++) {
+			playernames[i] = players[i].getName();
+		}
 		return this.forGroup(playernames);
 	}
+
+	/**
+	 * Gets a variable specific for a group of players
+	 * 
+	 * @param playernames
+	 * @return Player group variable
+	 */
 	public GroupVariable forGroup(String... playernames) {
 		PlayerVariable[] vars = new PlayerVariable[playernames.length];
 	    for (int i = 0; i < vars.length; i++) {
@@ -112,37 +189,58 @@ public class Variable {
 	    }
 		return new GroupVariable(vars, this);
 	}
-	
+
+	/**
+	 * Checks whether this Variable is part of SignLink
+	 * 
+	 * @return True if it is part of SignLink, False if not
+	 */
 	public boolean isUsedByPlugin() {
 		return Variables.isUsedByPlugin(this.name);
 	}
-		
+
+	/**
+	 * Updates a single sign
+	 * 
+	 * @param sign to update
+	 */
 	public void update(LinkedSign sign) {
     	sign.setText(this.defaultticker.current());
     	for (PlayerVariable var : forAll()) {
     		sign.setText(var.getTicker().current(), var.getPlayer());
     	}
 	}
-	public void update(Block on) {
-		if (on == null) return;
-	    for (LinkedSign sign : getSigns()) {
-	        if (BlockUtil.equals(on, sign.getStartBlock())) {
-	        	update(sign);
-	        }
-	    }
+
+	/**
+	 * Updates a single sign
+	 * 
+	 * @param signBlock where this variable is displayed
+	 */
+	public void update(Block signBlock) {
+		if (signBlock != null) {
+		    for (LinkedSign sign : getSigns()) {
+		        if (BlockUtil.equals(signBlock, sign.getStartBlock())) {
+		        	update(sign);
+		        }
+		    }
+		}
 	}
+
+	/**
+	 * Updates all the signs
+	 */
 	public void updateAll() {
 		for (LinkedSign sign : getSigns()) {
 			update(sign);
 		}
 	}
-		
+
 	void setSigns(String value, String[] playernames) {
 		for (LinkedSign sign : getSigns()) {
 			sign.setText(value, playernames);
 		}
 	}
-	
+
 	void updateTickers() {
 		//update
 		boolean changed = false;
@@ -157,31 +255,43 @@ public class Variable {
 			pvar.ticker.checked = false;
 		}
 	}
-	
+
+	/**
+	 * Updates the sign block order of all signs that display this Variable
+	 */
 	public void updateSignOrder() {
 		for (LinkedSign sign : getSigns()) {
 			sign.updateSignOrder();
 		}
 	}
+
+	/**
+	 * Updates the sign block order of all signs near a block that display this Variable
+	 * 
+	 * @param near block
+	 */
 	public void updateSignOrder(Block near) {
 		for (LinkedSign sign : this.boundTo) {
 			if (!sign.worldname.equals(near.getWorld().getName())) continue;
 			ArrayList<VirtualSign> signs = sign.getSigns();
-			if (signs == null) continue;
-			if (signs.size() == 0) continue;
-			for (VirtualSign vsign : signs) {
-				if (vsign.getX() - near.getX() < -2) continue;
-				if (vsign.getX() - near.getX() > 2) continue;
-				if (vsign.getZ() - near.getZ() < -2) continue;
-				if (vsign.getZ() - near.getZ() > 2) continue;
-				if (vsign.getY() - near.getY() < -2) continue;
-				if (vsign.getY() - near.getY() > 2) continue;
-				sign.updateSignOrder();
-				this.update(sign);
-				break;
+			if (!LogicUtil.nullOrEmpty(signs)) {
+				for (VirtualSign vsign : signs) {
+					if (Math.abs(vsign.getX() - near.getX()) >= 2) continue;
+					if (Math.abs(vsign.getY() - near.getY()) >= 2) continue;
+					if (Math.abs(vsign.getZ() - near.getZ()) >= 2) continue;
+					sign.updateSignOrder();
+					this.update(sign);
+					break;
+				}
 			}
 		}
 	}
+
+	/**
+	 * Updates the sign block order of all signs on a world that display this Variable
+	 * 
+	 * @param world
+	 */
 	public void updateSignOrder(World world) {
 		for (LinkedSign sign : getSigns()) {
 			if (sign.worldname.equals(world.getName())) {
@@ -189,10 +299,22 @@ public class Variable {
 			}
 		}
 	}
-	
+
+	/**
+	 * Gets all the signs on which this Variable is displayed
+	 * 
+	 * @return signs
+	 */
 	public LinkedSign[] getSigns() {
 		return this.boundTo.toArray(new LinkedSign[0]);
-	}	
+	}
+
+	/**
+	 * Gets all the signs on a block on which this Variable is displayed
+	 * 
+	 * @param on which it is displayed
+	 * @return signs
+	 */
 	public LinkedSign[] getSigns(Block on) {
 		ArrayList<LinkedSign> signs = new ArrayList<LinkedSign>();
 		if (on != null) {
@@ -205,17 +327,20 @@ public class Variable {
 		}
 		return signs.toArray(new LinkedSign[0]);
 	}
-	
+
+	@Override
 	public String toString() {
 		return this.name;
 	}
-	
+
 	public boolean addLocation(String worldname, int x, int y, int z, int lineAt, LinkedSign.Direction direction) {
 		return addLocation(new LinkedSign(worldname, x, y, z, lineAt, direction));
 	}
+
 	public boolean addLocation(Block signblock, int lineAt) {
 		return addLocation(new LinkedSign(signblock, lineAt));
 	}
+
 	public boolean addLocation(LinkedSign sign) {
 		//Not already added?
 		for (LinkedSign ls : boundTo) {
@@ -239,6 +364,7 @@ public class Variable {
 		}
 		return false;
 	}
+
 	public boolean removeLocation(Block signblock, int lineAt) {
 		boolean rem = false;
 		Iterator<LinkedSign> iter = this.boundTo.iterator();
@@ -255,12 +381,15 @@ public class Variable {
 		}
 		return rem;
 	}
+
 	public boolean removeLocation(Block signblock) {
 		return this.removeLocation(signblock, -1);
 	}
+
 	public boolean removeLocation(LinkedSign sign) {
 		return this.removeLocation(sign, true);
 	}
+
 	private boolean removeLocation(LinkedSign sign, boolean removeBoundTo) {
 		SignRemoveEvent event = new SignRemoveEvent(this, sign);
 		Bukkit.getServer().getPluginManager().callEvent(event);
@@ -275,10 +404,11 @@ public class Variable {
 		}
 		return false;
 	}
-		
+
 	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
 		return find(signs, variables, at.getLocation());
 	}
+
 	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
 		boolean found = false;
 		for (LinkedSign sign : boundTo) {
@@ -291,5 +421,23 @@ public class Variable {
 			}
 		}
 		return found;
+	}
+
+	/**
+	 * Returns this same Variable instance, there is no use to call this method
+	 */
+	@Override
+	@Deprecated
+	public Variable getVariable() {
+		return this;
+	}
+
+	/**
+	 * Returns the default value, to prevent confusion, this method is deprecated
+	 */
+	@Override
+	@Deprecated
+	public String get() {
+		return this.getDefault();
 	}
 }
