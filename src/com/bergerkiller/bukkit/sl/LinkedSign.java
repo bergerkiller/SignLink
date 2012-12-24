@@ -4,84 +4,89 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 
-public class LinkedSign {	
-	public LinkedSign(String worldname, int x, int y, int z, int lineAt, Direction direction) {
-		this.worldname = worldname;
-		this.x = x;
-		this.y = y;
-		this.z = z;
+public class LinkedSign {
+	public BlockLocation location;
+	public int line;
+	private boolean updateSignOrder = false;
+	public SignDirection direction;
+	private String oldtext;
+	private final ArrayList<VirtualSign> displaySigns = new ArrayList<VirtualSign>();
+	private static HashSet<IntVector3> loopCheck = new HashSet<IntVector3>(); // Used to prevent server freeze when finding signs
+
+	public LinkedSign(BlockLocation location, int lineAt, SignDirection direction) {
+		this.location = location;
 		this.line = lineAt;
 		this.direction = direction;
 	}
+
+	public LinkedSign(String worldname, int x, int y, int z, int lineAt, SignDirection direction) {
+		this(new BlockLocation(worldname, x, y, z), lineAt, direction);
+	}
+
 	public LinkedSign(Block from, int line) {
-		this.worldname = from.getWorld().getName();
-		this.x = from.getLocation().getBlockX();
-		this.y = from.getLocation().getBlockY();
-		this.z = from.getLocation().getBlockZ();
-		this.line = line;
-		this.direction = Direction.NONE;
+		this(new BlockLocation(from), line, SignDirection.NONE);
 		if (MaterialUtil.ISSIGN.get(from)) {
 			VirtualSign sign = VirtualSign.get(from);
 			String text = sign.getRealLine(line);
 			int peri = text.indexOf("%");
-			if (peri != -1) {
-				if (text.lastIndexOf("%") == peri) {
-					//get direction from text
-					if (peri == 0) {
-						this.direction = Direction.RIGHT;
-					} else if (peri == text.length() - 1) {
-						this.direction = Direction.LEFT;
-					} else if (text.substring(peri).contains(" ")) {
-						this.direction = Direction.LEFT;
-					} else {
-						this.direction = Direction.RIGHT;
-					}
+			if (peri != -1 && text.lastIndexOf("%") == peri) {
+				//get direction from text
+				if (peri == 0) {
+					this.direction = SignDirection.RIGHT;
+				} else if (peri == text.length() - 1) {
+					this.direction = SignDirection.LEFT;
+				} else if (text.substring(peri).contains(" ")) {
+					this.direction = SignDirection.LEFT;
+				} else {
+					this.direction = SignDirection.RIGHT;
 				}
 			}
 		}
 	}
-	
-	public enum Direction {LEFT, RIGHT, NONE}
-	
-	public String worldname;
-	public int x;
-	public int y;
-	public int z;
-	public int line;
-	private boolean updateSignOrder = false;
-	public Direction direction;
-	private String oldtext;
-	private ArrayList<VirtualSign> prevSigns = new ArrayList<VirtualSign>();
-	
+
 	public void updateText(String... forplayers){
 		setText(this.oldtext, forplayers);
 	}
+
+	/**
+	 * Gets the full line of text this LinkedSign currently displays
+	 * 
+	 * @return Line of text
+	 */
 	public String getText() {
 		return this.oldtext;
 	}
+
 	public void setText(String value, String... forplayers) {	
 		oldtext = value;
-		if (!SignLink.updateSigns) return; 
-		ArrayList<VirtualSign> signs = getSigns();
-		if (signs == null || signs.size() == 0) return;
+		if (!SignLink.updateSigns) {
+			return; 
+		}
+		final ArrayList<VirtualSign> signs = getSigns();
+		if (signs.isEmpty()) {
+			return;
+		}
+
 		//Get the start offset
 		String startline = signs.get(0).getRealLine(this.line);
 		int startoffset = startline.indexOf("%");
-		if (startoffset == -1) startoffset = 0;
+		if (startoffset == -1) {
+			startoffset = 0;
+		}
 		int maxlength = 15 - startoffset;
-				
+
 		//Get the color of the text before this variable
 		ChatColor color = ChatColor.BLACK;
 		for (int i = 0; i < startoffset; i++) {
@@ -90,46 +95,61 @@ public class LinkedSign {
 				color = StringUtil.getColor(startline.charAt(i), color);
 			}
 		}
-				
+
 		ArrayList<String> bits = new ArrayList<String>();
 		ChatColor prevcolor = color;
-		String lastbit = "";
-		for (int i = 0;i < value.length(); i++) {
+		StringBuilder lastbit = new StringBuilder(16);
+		// Fix up colors in text because of text being cut-off
+		// Appends a color in the right positions
+		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
-			if (c == '§') {
+			if (c == StringUtil.CHAT_STYLE_CHAR) {
 				if (i < value.length() - 1) {
 					i++;
 					color = StringUtil.getColor(value.charAt(i), color);
 				}
 			} else {
+				// Handle a change of color
 				if (prevcolor != color) {
 					if (lastbit.length() < maxlength - 2) {
-						lastbit += color;
+						// Room to append a color?
+						lastbit.append(color);
 					} else if (lastbit.length() == maxlength - 2) {
-						bits.add(lastbit + color);
-						maxlength = 15; //Next can be full
-						lastbit = (color == ChatColor.BLACK) ? "" : color.toString();
+						// Lesser, color is allowed, but not an additional character
+						bits.add(lastbit.toString() + color);
+						// Prepare for the next full text
+						maxlength = 15;
+						lastbit.setLength(0);
+						if (color != ChatColor.BLACK) {
+							lastbit.append(color);
+						}
 					} else {
-						//Greater, not allowed
-						bits.add(lastbit);
-						maxlength = 15; //Next can be full
-						lastbit = (color == ChatColor.BLACK) ? "" : color.toString();
+						//Greater, color is not allowed
+						bits.add(lastbit.toString());
+						// Prepare for the next full text
+						maxlength = 15;
+						lastbit.setLength(0);
+						if (color != ChatColor.BLACK) {
+							lastbit.append(color);
+						}
 					}
 				}
-				lastbit += c;
+				lastbit.append(c);
 				prevcolor = color;
 				if (lastbit.length() == maxlength) {
-					bits.add(lastbit);
-					maxlength = 15; //Next can be full
-					lastbit = (color == ChatColor.BLACK) ? "" : color.toString();
+					bits.add(lastbit.toString());
+					// Prepare for the next full text
+					maxlength = 15;
+					lastbit.setLength(0);
+					if (color != ChatColor.BLACK) {
+						lastbit.append(color);
+					}
 				}
 			}
 		}
-		while (lastbit.length() < maxlength && signs.size() > 1) {
-			lastbit += " ";
-		}
-		bits.add(lastbit);
-				
+		// Add a remaining bit
+		bits.add(lastbit + StringUtil.getFilledString(" ", maxlength - lastbit.length()));
+
 		//Set the signs
 		int index = 0;
 		for (VirtualSign sign : signs) {
@@ -161,7 +181,9 @@ public class LinkedSign {
 					//last, take % in account
 					String bit = bits.get(index);
 					int endindex = line.lastIndexOf("%") + 1;
-					if (endindex > line.length() - 1) endindex = line.length() - 1;
+					if (endindex > line.length() - 1) {
+						endindex = line.length() - 1;
+					}
 					String end = "";
 					if (endindex < line.length() - 1) {
 						end = line.substring(endindex);
@@ -183,43 +205,55 @@ public class LinkedSign {
 
 	public void update() {
 		ArrayList<VirtualSign> signs = getSigns();
-		if (signs != null) {
+		if (!signs.isEmpty()) {
 			for (VirtualSign sign : signs) {
 				sign.update();
 			}
 		}
 	}
 
-	private HashSet<Location> loopCheck = new HashSet<Location>();
-	private Block nextSign(Block from) {
-		BlockFace face = BlockUtil.getFacing(from);
-		face = FaceUtil.rotate(face, 2);
-		if (this.direction == Direction.RIGHT) {
-			face = face.getOppositeFace();
+	/**
+	 * Gets the starting Block, the first sign block this Linked Sign shows text on
+	 * 
+	 * @return Linked sign starting block
+	 */
+	public Block getStartBlock() {
+		if (this.location.isLoaded()) {
+			return this.location.getBlock();
+		} else {
+			return null;
 		}
-		Block next = from.getRelative(face);
-		if (!MaterialUtil.ISSIGN.get(next)) {
-			//Jumping a gap?
-			boolean found = false;
-			for (BlockFace f : FaceUtil.ATTACHEDFACESDOWN) {
-				Block next2 = next.getRelative(f);
-				if (MaterialUtil.ISSIGN.get(next2)) {
-					next = next2;
-					found = true;
-					break;
-				}
-			}
-			if (!found) next = null;
-		}
-		if (next != null && loopCheck.add(next.getLocation()))  {
-			return next;
-		}
-		return null;
 	}
-	
+
+	/**
+	 * Gets the location of the block where this linked sign starts
+	 * 
+	 * @return Linked sign start location
+	 */
+	public Location getStartLocation() {
+		Block b = getStartBlock();
+		return b == null ? null : b.getLocation();
+	}
+
+	/**
+	 * Tells this Linked Sign to update the order of the signs, to update how text is divided
+	 */
+	public void updateSignOrder() {
+		this.updateSignOrder = true;
+	}
+
+	/**
+	 * Gets the signs which this Linked Sign displays text on, validates the signs
+	 * 
+	 * @return The virtual signs on which this Linked Sign shows text
+	 */
+	public ArrayList<VirtualSign> getSigns() {
+		return this.getSigns(true);
+	}
+
 	private boolean validateSigns() {
-		if (prevSigns != null && prevSigns.size() != 0) {
-			for (VirtualSign sign : prevSigns) {
+		if (!this.displaySigns.isEmpty()) {
+			for (VirtualSign sign : this.displaySigns) {
 				if (!sign.isValid()) {
 					sign.remove();
 					return false;
@@ -229,51 +263,63 @@ public class LinkedSign {
 		}
 		return false;
 	}
-	
-	public Block getStartBlock() {
-		World w = Bukkit.getServer().getWorld(this.worldname);
-		if (w == null) return null;
-		if (!w.isChunkLoaded(x >> 4, z >> 4)) return null;
-		return w.getBlockAt(x, y, z);
+
+	private Block nextSign(Block from) {
+		BlockFace face = BlockUtil.getFacing(from);
+		face = FaceUtil.rotate(face, 2);
+		if (this.direction == SignDirection.RIGHT) {
+			face = face.getOppositeFace();
+		}
+		Block next = from.getRelative(face);
+		Block rval = next;
+		if (!MaterialUtil.ISSIGN.get(next)) {
+			rval = null;
+			//Jumping a gap?
+			for (BlockFace f : FaceUtil.ATTACHEDFACESDOWN) {
+				Block next2 = next.getRelative(f);
+				if (MaterialUtil.ISSIGN.get(next2)) {
+					next = next2;
+					rval = next;
+					break;
+				}
+			}
+		}
+		if (rval == null || !loopCheck.add(new IntVector3(rval)))  {
+			return null;
+		}
+		return rval;
 	}
-	public Location getStartLocation() {
-		Block b = getStartBlock();
-		if (b == null) return null;
-		return b.getLocation();
-	}
-	
-	public void updateSignOrder() {
-		this.updateSignOrder = true;
-	}
-		
-	public ArrayList<VirtualSign> getSigns() {
-		return this.getSigns(true);
-	}
+
+	/**
+	 * Gets the signs which this Linked Sign displays text on
+	 * 
+	 * @param validate the signs, True to validate that all signs exist, False to ignore that check
+	 * @return The virtual signs on which this Linked Sign shows text
+	 */
 	public ArrayList<VirtualSign> getSigns(boolean validate) {
 		if (!validate) {
-			return this.prevSigns;
+			return this.displaySigns;
 		}
 		Block start = getStartBlock();
 		//Unloaded chunk?
 		if (start == null) {
-			if (this.prevSigns != null) {
-				this.prevSigns.clear();
-				this.prevSigns = null;
-			}
-			return null;
+			this.displaySigns.clear();
+			return this.displaySigns;
 		}
 
-		if (validateSigns() && !updateSignOrder) {
-			return prevSigns;
+		if (validateSigns() && !this.updateSignOrder) {
+			return displaySigns;
 		}
-		updateSignOrder = false;
+		this.updateSignOrder = false;
 
 		//Regenerate old signs and return
+		this.displaySigns.clear();
 		if (MaterialUtil.ISSIGN.get(start)) {
 			loopCheck.clear();
-			prevSigns = new ArrayList<VirtualSign>();
-			prevSigns.add(VirtualSign.get(start));
-			if (this.direction == Direction.NONE) return prevSigns;
+			this.displaySigns.add(VirtualSign.get(start));
+			if (this.direction == SignDirection.NONE) {
+				return displaySigns;
+			}
 			while (start != null) {
 				//Check for next signs
 				start = nextSign(start);
@@ -282,33 +328,31 @@ public class LinkedSign {
 					String realline = sign.getRealLine(this.line);
 					int index = realline.indexOf('%');
 					if (index != -1) {
-						if (prevSigns.size() > 0) {
-							//allow?
-							if (index == 0 && index == realline.length() - 1) {
-								//the only char on the sign - allowed
-							} else if (index == 0) {
-								//all left - space to the right?
-								if (realline.charAt(index + 1) != ' ') break;
-							} else if (index == realline.length() - 1) {
-								//all right - space to the left?
-								if (realline.charAt(index - 1) != ' ') break;
-							} else {
-								//centered - surrounded by spaces?
-								if (realline.charAt(index - 1) != ' ') break;
-								if (realline.charAt(index + 1) != ' ') break;
-							}
-							start = null;
+						//allow?
+						if (index == 0 && index == realline.length() - 1) {
+							//the only char on the sign - allowed
+						} else if (index == 0) {
+							//all left - space to the right?
+							if (realline.charAt(index + 1) != ' ') break;
+						} else if (index == realline.length() - 1) {
+							//all right - space to the left?
+							if (realline.charAt(index - 1) != ' ') break;
+						} else {
+							//centered - surrounded by spaces?
+							if (realline.charAt(index - 1) != ' ') break;
+							if (realline.charAt(index + 1) != ' ') break;
 						}
+						start = null;
 					}
-					prevSigns.add(sign);
+					this.displaySigns.add(sign);
 				} else {
 					break;
 				}
 			}
-			if (this.direction == Direction.LEFT) Collections.reverse(prevSigns);
-			return prevSigns;
+			if (this.direction == SignDirection.LEFT) {
+				Collections.reverse(this.displaySigns);
+			}
 		}
-		return null;
+		return this.displaySigns;
 	}
-		
 }

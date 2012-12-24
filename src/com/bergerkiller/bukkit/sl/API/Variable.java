@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.sl.LinkedSign;
+import com.bergerkiller.bukkit.sl.SignDirection;
 import com.bergerkiller.bukkit.sl.VirtualSign;
 
 /**
@@ -272,7 +273,9 @@ public class Variable implements VariableValue {
 	 */
 	public void updateSignOrder(Block near) {
 		for (LinkedSign sign : this.boundTo) {
-			if (!sign.worldname.equals(near.getWorld().getName())) continue;
+			if (!sign.location.world.equals(near.getWorld().getName())) {
+				continue;
+			}
 			ArrayList<VirtualSign> signs = sign.getSigns();
 			if (!LogicUtil.nullOrEmpty(signs)) {
 				for (VirtualSign vsign : signs) {
@@ -294,7 +297,7 @@ public class Variable implements VariableValue {
 	 */
 	public void updateSignOrder(World world) {
 		for (LinkedSign sign : getSigns()) {
-			if (sign.worldname.equals(world.getName())) {
+			if (sign.location.world.equals(world.getName())) {
 				sign.updateSignOrder();
 			}
 		}
@@ -333,7 +336,7 @@ public class Variable implements VariableValue {
 		return this.name;
 	}
 
-	public boolean addLocation(String worldname, int x, int y, int z, int lineAt, LinkedSign.Direction direction) {
+	public boolean addLocation(String worldname, int x, int y, int z, int lineAt, SignDirection direction) {
 		return addLocation(new LinkedSign(worldname, x, y, z, lineAt, direction));
 	}
 
@@ -344,17 +347,17 @@ public class Variable implements VariableValue {
 	public boolean addLocation(LinkedSign sign) {
 		//Not already added?
 		for (LinkedSign ls : boundTo) {
-			if (ls == sign) return false;
-			if (ls.x == sign.x && ls.y == sign.y && ls.z == sign.z) {
-				if (ls.worldname.equalsIgnoreCase(sign.worldname)) {
-					if (ls.line == sign.line) {
-						this.removeLocation(ls);
-						break;
-					}
+			if (ls == sign) {
+				return false;
+			}
+			if (ls.location.equals(sign.location)) {
+				if (ls.line == sign.line) {
+					this.removeLocation(ls);
+					break;
 				}
 			}
 		}
-		
+
 		SignAddEvent event = new SignAddEvent(this, sign);
 		Bukkit.getServer().getPluginManager().callEvent(event);
 		if (!event.isCancelled()) {
@@ -412,8 +415,8 @@ public class Variable implements VariableValue {
 	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
 		boolean found = false;
 		for (LinkedSign sign : boundTo) {
-			if (sign.x == at.getBlockX() && sign.y == at.getBlockY() && sign.z == at.getBlockZ()) {
-				if (sign.worldname == at.getWorld().getName()) {
+			if (sign.location.x == at.getBlockX() && sign.location.y == at.getBlockY() && sign.location.z == at.getBlockZ()) {
+				if (sign.location.world == at.getWorld().getName()) {
 					found = true;
 					if (signs != null) signs.add(sign);
 					if (variables != null) variables.add(this);

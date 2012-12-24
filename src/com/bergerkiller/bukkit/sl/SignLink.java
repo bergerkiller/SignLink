@@ -25,7 +25,6 @@ import com.bergerkiller.bukkit.sl.API.PlayerVariable;
 import com.bergerkiller.bukkit.sl.API.Ticker;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
-import com.bergerkiller.bukkit.sl.LinkedSign.Direction;
 
 public class SignLink extends PluginBase {
 	public static SignLink plugin;
@@ -123,7 +122,7 @@ public class SignLink extends PluginBase {
 			for (String textline : config.getList(node, String.class)) {
 				try {
 					String[] bits = textline.split("_");
-					Direction direction = ParseUtil.parseEnum(bits[bits.length - 1], Direction.NONE);
+					SignDirection direction = ParseUtil.parseEnum(bits[bits.length - 1], SignDirection.NONE);
 					int line = Integer.parseInt(bits[bits.length - 2]);
 	    			int x = Integer.parseInt(bits[bits.length - 5]);
 	    			int y = Integer.parseInt(bits[bits.length - 4]);
@@ -194,9 +193,9 @@ public class SignLink extends PluginBase {
 			List<String> nodes = config.getList(varname, String.class);
 			for (LinkedSign sign : Variables.get(varname).getSigns()) {
 				StringBuilder builder = new StringBuilder(40);
-				builder.append(sign.worldname).append('_').append(sign.x);
-				builder.append('_').append(sign.y);
-				builder.append('_').append(sign.z);
+				builder.append(sign.location.world).append('_').append(sign.location.x);
+				builder.append('_').append(sign.location.y);
+				builder.append('_').append(sign.location.z);
 				builder.append('_').append(sign.line);
 				builder.append('_').append(sign.direction.toString());
 				nodes.add(builder.toString());
