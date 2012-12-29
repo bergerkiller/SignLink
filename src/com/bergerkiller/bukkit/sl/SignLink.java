@@ -29,7 +29,6 @@ import com.bergerkiller.bukkit.sl.API.Variables;
 public class SignLink extends PluginBase {
 	public static SignLink plugin;
 	public static boolean updateSigns = false;
-	public static boolean allowSignEdit = true;
 	public static boolean usePermissions = false;
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
@@ -94,7 +93,6 @@ public class SignLink extends PluginBase {
 		String timeFormat = config.get("timeFormat", "H:mm:ss");
 		String dateFormat = config.get("dateFormat", "yyyy.MM.dd");
 		usePermissions = config.get("usePermissions", false);
-		allowSignEdit = config.get("allowSignEdit", true);
 		try {
 			this.timeFormat = new SimpleDateFormat(timeFormat);
 		} catch (IllegalArgumentException ex) {

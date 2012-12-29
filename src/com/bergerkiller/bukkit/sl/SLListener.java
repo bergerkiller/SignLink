@@ -1,95 +1,26 @@
 package com.bergerkiller.bukkit.sl;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 
-import net.minecraft.server.v1_4_5.Packet130UpdateSign;
-
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class SLListener implements Listener {
-
-	public static HashMap<Location, Location> editedSigns = new HashMap<Location, Location>();
 	public static HashSet<Location> stopAutoColor = new HashSet<Location>();
-	
-	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onBlockPlace(BlockPlaceEvent event) {
-		if (!SignLink.allowSignEdit) return;
-		if (MaterialUtil.ISSIGN.get(event.getBlockPlaced())) {
-			if (MaterialUtil.ISSIGN.get(event.getBlockAgainst())) {
-				//Sign on sign placement
-				//Get the sign before we possible break it
-				VirtualSign sign = VirtualSign.get(event.getBlockAgainst());
-				//Is the player allowed to break (edit) this sign?				
-				BlockBreakEvent breakEvent = new BlockBreakEvent(event.getBlockAgainst(), event.getPlayer());
-				if (!CommonUtil.callEvent(breakEvent).isCancelled()) {
-					final Block placed = event.getBlockPlaced();
-					final Player player = event.getPlayer();
-					//Player can edit this sign.
-					
-					//Get the required info
-					final String[] lines = new String[4];
-					for (int i = 0; i < 4; i++) {
-						lines[i] = sign.getRealLine(i).replace('§', '&');
-					}
-					
-					//Update the sign for the player
-					new Task(SignLink.plugin) {
-						public void run() {
-							setText(player, placed, lines);
-						}
-					}.start();
-					
-					//Hide the newly placed sign (it's obstructing the view)
-					new Task(SignLink.plugin) {
-						public void run() {
-							Util.hideBlock(placed);
-						}
-					}.start(1);
-					
-					//All worked out, now we need to watch the sign for changes...
-					editedSigns.put(event.getBlockPlaced().getLocation(), event.getBlockAgainst().getLocation());
-					
-					//Restore the item for a bit...
-					ItemStack item = event.getPlayer().getItemInHand();
-					event.getPlayer().setItemInHand(item);
-				} else {
-					//No permission to edit
-					event.setCancelled(true);
-				}
-			}
-		}
-	}
-	
-	public static void setText(Player forPlayer, Block signblock, String[] lines) {		
-		int x = signblock.getLocation().getBlockX();
-		int y = signblock.getLocation().getBlockY();
-		int z = signblock.getLocation().getBlockZ();
-		PacketUtil.sendPacket(forPlayer, new Packet130UpdateSign(x, y, z, lines), false);
-	}
-		
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onSignChange(final SignChangeEvent event) {
 		if (!event.isCancelled()) {			
@@ -148,35 +79,6 @@ public class SLListener implements Listener {
 		}
 	}
 	
-	@EventHandler(priority = EventPriority.LOWEST)
-	public void onSignChangeLow(SignChangeEvent event) {
-		if (!event.isCancelled()) {
-			//Get the ACTUAL sign being edited :)
-			Location alternative = editedSigns.remove(event.getBlock().getLocation());
-			if (alternative != null) {
-				Block b = alternative.getBlock();
-				if (MaterialUtil.ISSIGN.get(b)) {
-					//Remove the old one
-					event.getBlock().setTypeId(0);
-					//Cancel
-					event.setCancelled(true);
-					//We need to target another sign...first handle text change
-					event = new SignChangeEvent(b, event.getPlayer(), event.getLines());
-					Bukkit.getServer().getPluginManager().callEvent(event);
-				    if (!event.isCancelled()) {
-				    	//handle the new text
-						VirtualSign sign = VirtualSign.get(b);
-						for (int i = 0; i < 4; i++) {
-							sign.setRealLine(i, event.getLine(i));
-						}
-						sign.update();
-				    }
-					return;
-				}
-			}
-		}
-	}
-	
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		SignLink.plugin.updatePlayerName(event.getPlayer());
@@ -186,5 +88,4 @@ public class SLListener implements Listener {
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		VirtualSign.invalidateAll(event.getPlayer());
 	}
-
 }
