@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.TimeUtil;
@@ -32,7 +33,7 @@ public class SignLink extends PluginBase {
 	public static boolean usePermissions = false;
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
-	
+
 	@Override
 	public int getMinimumLibVersion() {
 		return Common.VERSION;
@@ -82,11 +83,13 @@ public class SignLink extends PluginBase {
 	public void updatePlayerName(Player p) {
 		Variables.get("playername").forPlayer(p).set(p.getName());
 	}
-	
+
+	@Override
 	public void enable() {
 		plugin = this;
 		this.register(SLListener.class);
 		this.register("togglesignupdate", "reloadsignlink", "variable");
+		this.register(new SLPacketListener(), PacketType.UPDATE_SIGN);
 
 		FileConfiguration config = new FileConfiguration(this);
 		config.load();
@@ -108,11 +111,10 @@ public class SignLink extends PluginBase {
 			this.dateFormat = new SimpleDateFormat(dateFormat);
 		}
 		config.save();
-		
+
 		VirtualSign.init();
-		
+
 		//Load sign locations from file
-		
 		config = new FileConfiguration(this, "linkedsigns.yml");
 		config.load();
 		for (String node : config.getKeys()) {
@@ -137,9 +139,7 @@ public class SignLink extends PluginBase {
 				}
 			}
 		}
-		
 
-				
 		//General %time% and %date% update thread
 		timetask = new Task(this) {
 			private long prevtpstime = System.currentTimeMillis();
@@ -170,21 +170,18 @@ public class SignLink extends PluginBase {
 				}
 			}
 		}.start(1, 1);
-				
+
 		updateSigns = true;
-		
-		for (Player p : getServer().getOnlinePlayers()) {
-			updatePlayerName(p);
-		}
 	}
-	
+
 	private Task updatetask;
 	private Task timetask;
 
+	@Override
 	public void disable() {
 		Task.stop(timetask);
 		Task.stop(updatetask);
-		
+
 		//Save sign locations to file
 		FileConfiguration config = new FileConfiguration(this, "linkedsigns.yml");
 		for (String varname : Variables.getNames()) {
@@ -206,11 +203,11 @@ public class SignLink extends PluginBase {
 		
 		//Save variable values and tickers to file
 		this.saveValues();
-		
+
 		Variables.deinit();
 		VirtualSign.deinit();
 	}
-	
+
 	private class VariableEdit {
 		public VariableEdit(Variable var) {
 			this.variable = var;

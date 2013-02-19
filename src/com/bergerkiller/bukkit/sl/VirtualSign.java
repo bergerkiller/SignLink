@@ -297,7 +297,7 @@ public class VirtualSign {
 			return;
 		} else {
 			//update the sign if needed (just in case the tile got swapped or destroyed?)
-			if (TileEntityVirtualSign.replace(this.getX(), this.getY(), this.getZ(), this.getWorld()) || signcheckcounter++ % 20 == 0) {
+			if (signcheckcounter++ % 20 == 0) {
 				Block b = this.getBlock();
 				if (!MaterialUtil.ISSIGN.get(b)) {
 					this.remove();

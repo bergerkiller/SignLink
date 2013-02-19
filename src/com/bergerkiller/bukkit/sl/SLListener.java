@@ -13,7 +13,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -60,15 +60,17 @@ public class SLListener implements Listener {
 				}
 				event.getPlayer().sendMessage(msg);
 			}
-			new Task(SignLink.plugin) {
+			CommonUtil.nextTick(new Runnable() {
 				public void run() {
-					if (event.isCancelled()) return;
+					if (event.isCancelled()) {
+						return;
+					}
 					if (!VirtualSign.exists(event.getBlock())) {
 						VirtualSign.add(event.getBlock(), event.getLines());
 					}
 					Variables.updateSignOrder(event.getBlock());
 				}
-			}.start();
+			});
 		}
 	}
 		

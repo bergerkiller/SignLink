@@ -1,9 +1,8 @@
 package com.bergerkiller.bukkit.sl;
 
-import net.minecraft.server.v1_4_5.Packet130UpdateSign;
-
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 
 public class VirtualLines {
@@ -39,7 +38,7 @@ public class VirtualLines {
 	public void setChanged(boolean changed) {
 		this.changed = changed;
 	}
-	
+
 	public void updateSign(Player player, int x, int y, int z) {
 		if (SignLink.updateSigns && player != null) {
 			String[] lines = new String[4];
@@ -50,8 +49,9 @@ public class VirtualLines {
 					lines[i] = this.lines[i];
 				}
 			}
-			PacketUtil.sendPacket(player, new Packet130UpdateSign(x, y, z, lines), true);
+			SLPacketListener.ignore = true;
+			PacketUtil.sendPacket(player, PacketFields.UPDATE_SIGN.newInstance(x, y, z, lines));
+			SLPacketListener.ignore = false;
 		}
 	}
-	
 }
