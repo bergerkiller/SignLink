@@ -17,7 +17,7 @@ import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
-import com.bergerkiller.bukkit.common.BlockMap;
+import com.bergerkiller.bukkit.common.collections.BlockMap;
 
 public class VirtualSign {
 	private static BlockMap<VirtualSign> virtualSigns;
