@@ -7,7 +7,7 @@
   <version>1.31</version>
   <packaging>jar</packaging>
 
-  <name>TrainCarts</name>
+  <name>SignLink</name>
   <url>http://dev.bukkit.org/server-mods/signlink/</url>
 
   <properties>
@@ -30,7 +30,7 @@
   <dependencies>
     <dependency>
       <groupId>org.bukkit</groupId>
-      <artifactId>bukkit</artifactId>
+      <artifactId>craftbukkit</artifactId>
       <version>1.4.7-R1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
