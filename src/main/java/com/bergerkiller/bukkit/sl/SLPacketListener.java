@@ -26,10 +26,8 @@ public class SLPacketListener implements PacketListener {
 			Block block = PacketFields.UPDATE_SIGN.getBlock(packet.getHandle(), event.getPlayer().getWorld());
 			VirtualSign sign = VirtualSign.get(block);
 			if (sign != null) {
-				if (!sign.ignorePacket()) {
-					sign.update();
-				}
-				event.setCancelled(true);
+				// Set the lines of the packet to the valid lines
+				packet.write(PacketFields.UPDATE_SIGN.lines, sign.getLines(event.getPlayer()).get());
 			}
 		}
 	}
