@@ -38,7 +38,7 @@ public class LinkedSign {
 	public LinkedSign(Block from, int line) {
 		this(new BlockLocation(from), line, SignDirection.NONE);
 		if (MaterialUtil.ISSIGN.get(from)) {
-			VirtualSign sign = VirtualSign.get(from);
+			VirtualSign sign = VirtualSign.getOrCreate(from);
 			String text = sign.getRealLine(line);
 			int peri = text.indexOf("%");
 			if (peri != -1 && text.lastIndexOf("%") == peri) {
@@ -316,7 +316,7 @@ public class LinkedSign {
 		this.displaySigns.clear();
 		if (MaterialUtil.ISSIGN.get(start)) {
 			loopCheck.clear();
-			this.displaySigns.add(VirtualSign.get(start));
+			this.displaySigns.add(VirtualSign.getOrCreate(start));
 			if (this.direction == SignDirection.NONE) {
 				return displaySigns;
 			}
@@ -324,7 +324,7 @@ public class LinkedSign {
 				//Check for next signs
 				start = nextSign(start);
 				if (start != null) {
-					VirtualSign sign = VirtualSign.get(start);
+					VirtualSign sign = VirtualSign.getOrCreate(start);
 					String realline = sign.getRealLine(this.line);
 					int index = realline.indexOf('%');
 					if (index != -1) {

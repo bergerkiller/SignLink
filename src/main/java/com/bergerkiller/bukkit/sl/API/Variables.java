@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.sl.API;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -16,10 +17,9 @@ import com.bergerkiller.bukkit.sl.VirtualSign;
 
 public class Variables {
 	private static HashMap<String, Variable> variables = new HashMap<String, Variable>();
-	public static void deinit() {
-		synchronized (variables) {
-			variables.clear();
-		}
+
+	public static synchronized void deinit() {
+		variables.clear();
 	}
 
 	/**
@@ -39,19 +39,20 @@ public class Variables {
 	/**
 	 * Updates all the tickers of all the Variables on the server
 	 */
-	public static void updateTickers() {
-		synchronized (variables) {
-			for (Variable var : all()) {
-				var.updateTickers();
-			}
+	public static synchronized void updateTickers() {
+		for (Variable var : all()) {
+			var.updateTickers();
 		}
 	}
-
+	
 	/**
-	 * Gets all the variables on the server
+	 * Gets all the variables on the server.
+	 * @deprecated: This method is not thread-safe.
+	 * Use {@link getAll()} instead.
 	 * 
 	 * @return Collection of all variables
 	 */
+	@Deprecated
 	public static Collection<Variable> all() {
 		return variables.values();
 	}
@@ -59,11 +60,9 @@ public class Variables {
 	/**
 	 * Updates the sign block orders of all signs showing variables
 	 */
-	public static void updateSignOrder() {
-		synchronized (variables) {
-			for (Variable var : all()) {
-				var.updateSignOrder();
-			}
+	public static synchronized void updateSignOrder() {
+		for (Variable var : all()) {
+			var.updateSignOrder();
 		}
 	}
 
@@ -72,11 +71,9 @@ public class Variables {
 	 * 
 	 * @param world to update
 	 */
-	public static void updateSignOrder(World world) {
-		synchronized (variables) {
-			for (Variable var : all()) {
-				var.updateSignOrder(world);
-			}
+	public static synchronized void updateSignOrder(World world) {
+		for (Variable var : all()) {
+			var.updateSignOrder(world);
 		}
 	}
 
@@ -85,12 +82,28 @@ public class Variables {
 	 * 
 	 * @param near
 	 */
-	public static void updateSignOrder(Block near) {
-		synchronized (variables) {
-			for (Variable var : all()) {
-				var.updateSignOrder(near);
-			}
+	public static synchronized void updateSignOrder(Block near) {
+		for (Variable var : all()) {
+			var.updateSignOrder(near);
 		}
+	}
+
+	/**
+	 * Gets a new mutual list of all variables available
+	 * 
+	 * @return Variables
+	 */
+	public static synchronized List<Variable> getAllAsList() {
+		return new ArrayList<Variable>(variables.values());
+	}
+
+	/**
+	 * Gets an array of all variables available
+	 * 
+	 * @return Variables
+	 */
+	public static synchronized Variable[] getAll() {
+		return variables.values().toArray(new Variable[0]);
 	}
 
 	/**
@@ -98,10 +111,8 @@ public class Variables {
 	 * 
 	 * @return Variable names
 	 */
-	public static String[] getNames() {
-		synchronized (variables) {
-			return variables.keySet().toArray(new String[0]);
-		}
+	public static synchronized String[] getNames() {
+		return variables.keySet().toArray(new String[0]);
 	}
 
 	/**
@@ -110,17 +121,16 @@ public class Variables {
 	 * @param name of the variable
 	 * @return the Variable, or null if the name is of an unsupported format
 	 */
-	public static Variable get(String name) {
-		if (name == null) return null;
-		if (name.contains("\000")) return null;
-		synchronized (variables) {
-			Variable var = variables.get(name);
-			if (var == null) {
-				var = new Variable("%" + name + "%", name);
-				variables.put(name, var);
-			}
-			return var;
+	public static synchronized Variable get(String name) {
+		if (name == null || name.contains("\000")) {
+			return null;
 		}
+		Variable var = variables.get(name);
+		if (var == null) {
+			var = new Variable("%" + name + "%", name);
+			variables.put(name, var);
+		}
+		return var;
 	}
 
 	/**
@@ -130,7 +140,7 @@ public class Variables {
 	 * @param line on which the variable can be found
 	 * @return The Variable, or null if there is none
 	 */
-	public static Variable get(VirtualSign sign, int line) {
+	public static synchronized Variable get(VirtualSign sign, int line) {
 		return get(Util.getVarName(sign.getRealLine(line)));
 	}
 
@@ -141,9 +151,9 @@ public class Variables {
 	 * @param line on which the variable can be found
 	 * @return The Variable, or null if there is none
 	 */
-	public static Variable get(Block signblock, int line) {
+	public static synchronized Variable get(Block signblock, int line) {
 		if (MaterialUtil.ISSIGN.get(signblock)) {
-			return get(VirtualSign.get(signblock), line);
+			return get(VirtualSign.getOrCreate(signblock), line);
 		}
 		return null;
 	}
@@ -154,7 +164,7 @@ public class Variables {
 	 * @param name of the Variable to remove
 	 * @return True if the variable was removed, False if it was not found
 	 */
-	public static boolean remove(String name) {
+	public static synchronized boolean remove(String name) {
 		Variable var = variables.remove(name);
 		if (var != null) {
 			SignLink.plugin.removeEditing(var);
@@ -170,25 +180,18 @@ public class Variables {
 	 * @return True if the sign was found and removed, False if not
 	 */
 	public static boolean removeLocation(Block signblock) {
-		synchronized (variables) {
-			for (Variable var : all()) {
-				var.removeLocation(signblock);
-			}
-			return VirtualSign.remove(signblock);
-		}
+		return VirtualSign.remove(signblock);
 	}
 
-	public static boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
+	public static synchronized boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
 		return find(signs, variables, at.getLocation());
 	}
 
-	public static boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
+	public static synchronized boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
 		boolean found = false;
-		synchronized (variables) {
-			for (Variable var : all()) {
-				if (var.find(signs, variables, at)) {
-					found = true;
-				}
+		for (Variable var : all()) {
+			if (var.find(signs, variables, at)) {
+				found = true;
 			}
 		}
 		return found;

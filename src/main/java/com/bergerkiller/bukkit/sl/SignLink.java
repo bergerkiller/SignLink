@@ -64,7 +64,7 @@ public class SignLink extends PluginBase {
 	}	
 	public void saveValues() {
 		FileConfiguration values = new FileConfiguration(this, "values.yml");
-		for (Variable var : Variables.all()) {
+		for (Variable var : Variables.getAll()) {
 			if (var.isUsedByPlugin()) continue;
 			ConfigurationNode node = values.getNode(var.getName());
 			node.set("value", var.getDefault());
@@ -276,7 +276,7 @@ public class SignLink extends PluginBase {
 		// Variable list
 		if (cmdLabel.equalsIgnoreCase("list")) {
 			ArrayList<String> vars = new ArrayList<String>();
-			for (Variable variable : Variables.all()) {
+			for (Variable variable : Variables.getAll()) {
 				if (Permission.EDIT.has(sender, variable.getName())) {
 					vars.add(variable.getName());
 				}
@@ -301,7 +301,7 @@ public class SignLink extends PluginBase {
 		final boolean signcheck = cmdLabel.equalsIgnoreCase("deleteunused");
 		if (cmdLabel.equalsIgnoreCase("deleteall") || signcheck) {
 			Permission.GLOBALDELETE.handle(sender);
-			List<Variable> allVars = new ArrayList<Variable>(Variables.all());
+			List<Variable> allVars = Variables.getAllAsList();
 			if (signcheck) {
 				Iterator<Variable> var = allVars.iterator();
 				while (var.hasNext()) {

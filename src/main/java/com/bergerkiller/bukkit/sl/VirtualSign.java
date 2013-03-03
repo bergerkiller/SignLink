@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.sl;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -12,153 +11,50 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.material.Directional;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
-import com.bergerkiller.bukkit.common.collections.BlockMap;
-
-public class VirtualSign {
-	private static BlockMap<VirtualSign> virtualSigns;
-	public static void deinit() {
-		virtualSigns.clear();
-		virtualSigns = null;
-	}
-	public static void init() {
-		virtualSigns = new BlockMap<VirtualSign>();
-	}
-	public static VirtualSign add(Block b, String[] lines) {
-		if (virtualSigns == null) return null;
-		VirtualSign vsign = new VirtualSign();
-		vsign.sign = BlockUtil.getSign(b);
-		if (lines == null || lines.length < 4) {
-		    lines = vsign.sign.getLines();
-		}
-		vsign.defaultlines = new VirtualLines(lines);
-		vsign.playerlines = new HashMap<String, VirtualLines>();
-		for (int i = 0; i < 4; i++) {
-			vsign.oldlines[i] = lines[i];
-		}
-		synchronized (virtualSigns) {
-			virtualSigns.put(b, vsign);
-		}
-		return vsign;
-	}
-	public static VirtualSign add(Block b) {
-		return add(b, null);
-	}
-	public static VirtualSign get(Location at) {
-		if (virtualSigns == null) return null;
-		synchronized (virtualSigns) {
-			Block b = at.getBlock();
-			if (MaterialUtil.ISSIGN.get(b)) {
-				VirtualSign sign = virtualSigns.get(b);
-				if (sign == null || !sign.isValid()) sign = add(at.getBlock());
-				return sign;
-			} else {
-				virtualSigns.remove(b);
-				return null;
-			}
-		}
-	}
-	public static VirtualSign get(Block b) {
-		return get(b.getLocation());
-	}
-	public static VirtualSign[] getAll() {
-		if (virtualSigns == null) return null;
-		synchronized (virtualSigns) {
-			return virtualSigns.values().toArray(new VirtualSign[0]);
-		}
-	}
-
-	public static boolean exists(Location at) {
-		return exists(at.getBlock());
-	}
-	public static boolean exists(Block at) {
-		if (virtualSigns == null) return false;
-		synchronized (virtualSigns) {
-			return virtualSigns.containsKey(at);
-		}
-	}
-	
-	public static boolean remove(VirtualSign sign) {
-		return remove(sign.getBlock());
-	}
-	public static boolean remove(Block b) {
-		if (virtualSigns == null) return false;
-		synchronized (virtualSigns) {
-			return virtualSigns.remove(b) != null;
-		}
-	}
-	public static void removeAll(World world) {
-		for (VirtualSign vs : getAll()) {
-			if (vs.getWorld() == world) {
-				remove(vs);
-			}
-		}
-	}
-	public static void updateAll() {
-		for (VirtualSign sign : getAll()) {
-			sign.update();
-		}
-	}
-	public static void forcedUpdate(final Player forplayer, long delay) {
-		if (forplayer == null) return;
-		new Task(SignLink.plugin) {
-			public void run() {
-				forcedUpdate(forplayer);
-			}
-		}.start(delay);
-	}
-	public static void forcedUpdate(Player forplayer) {
-		if (forplayer == null) return;
-		Iterator<VirtualSign> iter = virtualSigns.values().iterator();
-		while (iter.hasNext()) {
-			iter.next().update(forplayer);
-		}
-	}
-	public static void clearPlayer(String playername) {
-		for (VirtualSign sign : virtualSigns.values()) {
-			sign.playerlines.remove(playername);
-		}
-	}
-	
+public class VirtualSign extends VirtualSignStore {
 	private Sign sign;
-	private String[] oldlines = new String[4];
-	private HashMap<String, VirtualLines> playerlines;
-	private VirtualLines defaultlines;
+	private final String[] oldlines = new String[4];
+	private final HashMap<String, VirtualLines> playerlines = new HashMap<String, VirtualLines>();
+	private final VirtualLines defaultlines;
 	private HashSet<VirtualLines> outofrange = new HashSet<VirtualLines>();
-	private boolean ignorePackets = false;
 	private boolean wasUnloaded = false;
 	private int signcheckcounter = 0;
-	
-	boolean ignorePacket() {
-		if (ignorePackets) {
-			return true;
-		} else {
-			ignorePackets = false;
-			return false;
+
+	protected VirtualSign(Block signBlock, String[] lines) {
+		this.sign = BlockUtil.getSign(signBlock);
+		if (lines == null || lines.length < 4) {
+		    lines = this.sign.getLines();
+		}
+		this.defaultlines = new VirtualLines(lines);
+		for (int i = 0; i < 4; i++) {
+			this.oldlines[i] = lines[i];
 		}
 	}
-		
+
 	public void resetLines() {
 		this.playerlines.clear();
 	}
+
 	public void resetLines(Player player) {
 		resetLines(player.getName());
 	}
+
 	public void resetLines(String playerName) {
 		playerlines.remove(playerName);
 	}
-	
+
 	public void remove() {
-		remove(this);
-		Variables.removeLocation(this.getBlock());
+		remove(this.getBlock());
 	}
-	
+
 	public VirtualLines getLines(String playerName) {
-		if (playerName == null) return getLines();
+		if (playerName == null) {
+			return getLines();
+		}
 		VirtualLines lines = playerlines.get(playerName);
 		if (lines == null) {
 			lines = new VirtualLines(defaultlines.get());
@@ -168,7 +64,9 @@ public class VirtualSign {
 		return lines;
 	}
 	public VirtualLines getLines(Player player) {
-		if (player == null) return getLines();
+		if (player == null) {
+			return getLines();
+		}
 		return getLines(player.getName());
 	}
 	public VirtualLines getLines() {
@@ -270,14 +168,6 @@ public class VirtualSign {
 	public void invalidate(String player) {
 		getLines(player).setChanged();
 	}
-		
-	public static void invalidateAll(Player player) {
-		synchronized (virtualSigns) {
-			for (VirtualSign vs : virtualSigns.values()) {
-				if (vs.isInRange(player)) vs.invalidate(player);
-			}
-		}
-	}
 
 	public void update() {			
 		if (!this.isLoaded()) {
@@ -306,9 +196,7 @@ public class VirtualSign {
 				this.sign = BlockUtil.getSign(b);
 			}
 		}
-		//Allow packets to be sent (after a tick)
-		this.ignorePackets = false;
-		
+
 		//real-time changes to the text
 		for (int i = 0; i < 4; i++) {
 			if (!this.oldlines[i].equals(this.sign.getLine(i))) {
