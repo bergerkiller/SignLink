@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>SignLink</artifactId>
-  <version>1.31</version>
+  <version>1.32</version>
   <packaging>jar</packaging>
 
   <name>SignLink</name>
@@ -15,28 +15,28 @@
   </properties>
 
   <repositories>
-    <!-- Repo for access to CraftBukkit -->
+    <!-- Repo for access to Bukkit -->
     <repository>
       <id>bukkit-repo</id>
       <url>http://repo.bukkit.org/content/groups/public</url>
     </repository>
     <!-- Repo for access to BKCommonLib -->
     <repository>
-      <id>herocraft-repo</id>
-      <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
+      <id>dj-tcraft-repo</id>
+      <url>http://ci.dj-tcraft.nl/plugin/repository/everything/</url>
     </repository>
   </repositories>
 
   <dependencies>
     <dependency>
       <groupId>org.bukkit</groupId>
-      <artifactId>craftbukkit</artifactId>
-      <version>1.4.7-R1.1-SNAPSHOT</version>
+      <artifactId>bukkit</artifactId>
+      <version>1.5-R0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.50</version>
+      <version>1.51-SNAPSHOT</version>
   	</dependency>
     <dependency>
       <groupId>junit</groupId>
