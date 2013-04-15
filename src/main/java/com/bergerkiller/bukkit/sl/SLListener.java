@@ -1,10 +1,8 @@
 package com.bergerkiller.bukkit.sl;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -19,11 +17,10 @@ import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class SLListener implements Listener {
-	public static HashSet<Location> stopAutoColor = new HashSet<Location>();
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onSignChange(final SignChangeEvent event) {
-		if (!event.isCancelled()) {			
+		if (!event.isCancelled()) {
 			//Convert colors
 			for (int i = 0; i < event.getLines().length; i++) {
 				event.setLine(i, StringUtil.ampToColor(event.getLine(i)));
@@ -73,19 +70,19 @@ public class SLListener implements Listener {
 			});
 		}
 	}
-		
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBlockBreak(BlockBreakEvent event) {
 		if (!event.isCancelled()) {
 			Variables.removeLocation(event.getBlock());
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		SignLink.plugin.updatePlayerName(event.getPlayer());
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		VirtualSign.invalidateAll(event.getPlayer());

@@ -166,7 +166,7 @@ public class SignLink extends PluginBase {
 					VirtualSign.updateAll();
 				} catch (Throwable t) {
 					log(Level.SEVERE, "An error occured while updating the signs:");
-					t.printStackTrace();
+					SignLink.plugin.handle(t);
 				}
 			}
 		}.start(1, 1);
