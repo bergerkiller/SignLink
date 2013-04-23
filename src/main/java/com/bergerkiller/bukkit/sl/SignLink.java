@@ -337,10 +337,6 @@ public class SignLink extends PluginBase {
 				}
 				// Add a new Variable editing slot
 				VariableEdit edit = new VariableEdit(Variables.get(args[0]));
-				edit.players = new String[args.length - 1];
-				for (int i = 1; i < args.length; i++) {
-					edit.players[i - 1] = args[i];
-				}
 				if (sender instanceof Player) {
 					editingvars.put(((Player) sender).getName().toLowerCase(), edit);
 				} else {
@@ -348,13 +344,15 @@ public class SignLink extends PluginBase {
 				}
 				// Handle feedback
 				sender.sendMessage(ChatColor.GREEN + "You are now editing variable '" + args[0] + "'");
-				if (edit.players.length > 0) {
-					sender.sendMessage(ChatColor.YELLOW + "For players: " + StringUtil.combine(" ", edit.players));
-				}
 			} else {
 				sender.sendMessage(ChatColor.RED + "Please specify a variable name!");
 			}
-			return true;
+			args = StringUtil.remove(args, 0);
+			if (args.length == 0) {
+				return true;
+			}
+			cmdLabel = args[0];
+			args = StringUtil.remove(args, 0);
 		}
 		// Obtain the currently edited variable
 		VariableEdit var;
