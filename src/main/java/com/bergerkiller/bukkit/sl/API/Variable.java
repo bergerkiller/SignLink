@@ -208,7 +208,7 @@ public class Variable implements VariableValue {
 	public void update(LinkedSign sign) {
     	sign.setText(this.defaultticker.current(), this.defaultticker.hasWrapAround());
     	for (PlayerVariable var : forAll()) {
-    		sign.setText(var.getTicker().current(), var.getTicker().isTicking(), var.getPlayer());
+    		sign.setText(var.getTicker().current(), var.getTicker().hasWrapAround(), var.getPlayer());
     	}
 	}
 
