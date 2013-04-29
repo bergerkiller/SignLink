@@ -13,6 +13,11 @@ public interface VariableValue {
 	Variable getVariable();
 
 	/**
+	 * Updates the text on all the signs
+	 */
+	void updateAll();
+
+	/**
 	 * Clears the settings, changing it to the default value
 	 */
 	void clear();

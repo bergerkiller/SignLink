@@ -63,13 +63,18 @@ public class GroupVariable implements VariableValue {
 				}
 				pvar.value = value;
 			}
-			this.variable.setSigns(value, getPlayerNames());
+			this.variable.setSigns(value, this.ticker != null && this.ticker.hasWrapAround(), getPlayerNames());
 		}
 	}
 
 	@Override
 	public Variable getVariable() {
 		return this.variable;
+	}
+
+	@Override
+	public void updateAll() {
+		this.variable.updateAll();
 	}
 
 	@Override

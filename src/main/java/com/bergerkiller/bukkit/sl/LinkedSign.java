@@ -56,8 +56,8 @@ public class LinkedSign {
 		}
 	}
 
-	public void updateText(String... forplayers){
-		setText(this.oldtext, forplayers);
+	public void updateText(boolean wrapAround, String... forplayers){
+		setText(this.oldtext, wrapAround, forplayers);
 	}
 
 	/**
@@ -69,7 +69,7 @@ public class LinkedSign {
 		return this.oldtext;
 	}
 
-	public void setText(String value, String... forplayers) {	
+	public void setText(String value, boolean wrapAround, String... forplayers) {	
 		oldtext = value;
 		if (!SignLink.updateSigns) {
 			return; 
@@ -77,6 +77,31 @@ public class LinkedSign {
 		final ArrayList<VirtualSign> signs = getSigns();
 		if (signs.isEmpty()) {
 			return;
+		}
+
+		// If specified, wrap around the text so it fills all signs
+		if (wrapAround) {
+			// Find out the text size, ignoring the text color at the start if it's the same as the end
+			double valueLength = value.length();
+			if (value.charAt(0) == StringUtil.CHAT_STYLE_CHAR && value.length() > 1) {
+				ChatColor firstColor = StringUtil.getColor(value.charAt(1), null);
+				if (firstColor != null) {
+					ChatColor lastColor = firstColor;
+					for (int i = 0; i < value.length() - 1; i++) {
+						if (value.charAt(i) == StringUtil.CHAT_STYLE_CHAR) {
+							i++;
+							lastColor = StringUtil.getColor(value.charAt(i), lastColor);
+						}
+					}
+					if (firstColor == lastColor) {
+						valueLength -= 2.0;
+					}
+				}
+			}
+			if (valueLength > 0.0) {
+				int appendCount = (int) Math.ceil((double) (signs.size() * 15) / valueLength);
+				value = StringUtil.getFilledString(value, appendCount);
+			}
 		}
 
 		//Get the start offset
@@ -148,7 +173,10 @@ public class LinkedSign {
 			}
 		}
 		// Add a remaining bit
-		bits.add(lastbit + StringUtil.getFilledString(" ", maxlength - lastbit.length()));
+		if (signs.size() > 1) {
+			lastbit.append(StringUtil.getFilledString(" ", maxlength - lastbit.length()));
+		}
+		bits.add(lastbit.toString());
 
 		//Set the signs
 		int index = 0;

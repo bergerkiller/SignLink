@@ -21,8 +21,8 @@ public class SLPacketListener implements PacketListener {
 		if (ignore) {
 			return;
 		}
-		CommonPacket packet = event.getPacket();
-		if (packet.getType() == PacketType.UPDATE_SIGN) {
+		if (event.getType() == PacketType.UPDATE_SIGN) {
+			CommonPacket packet = event.getPacket();
 			Block block = PacketFields.UPDATE_SIGN.getBlock(packet.getHandle(), event.getPlayer().getWorld());
 			VirtualSign sign = VirtualSign.get(block);
 			if (sign != null) {

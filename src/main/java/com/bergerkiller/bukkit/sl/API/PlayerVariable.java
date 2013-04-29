@@ -52,13 +52,18 @@ public class PlayerVariable implements VariableValue {
 		if (!event.isCancelled()) {
 			this.value = value;
 			getTicker().reset(value);
-			this.variable.setSigns(value, new String[] {this.playername});
+			this.variable.setSigns(value, this.ticker.hasWrapAround(), new String[] {this.playername});
 		}
 	}
 
 	@Override
 	public Variable getVariable() {
 		return this.variable;
+	}
+
+	@Override
+	public void updateAll() {
+		this.variable.updateAll();
 	}
 
 	/**

@@ -109,7 +109,7 @@ public class Variable implements VariableValue {
 			this.defaultvalue = event.getNewValue();
 			this.defaultticker.reset(this.defaultvalue);
 			this.playervariables.clear();
-			this.setSigns(this.defaultvalue, null);
+			this.setSigns(this.defaultvalue, this.defaultticker.hasWrapAround(), null);
 		}
 	}
 
@@ -206,9 +206,9 @@ public class Variable implements VariableValue {
 	 * @param sign to update
 	 */
 	public void update(LinkedSign sign) {
-    	sign.setText(this.defaultticker.current());
+    	sign.setText(this.defaultticker.current(), this.defaultticker.hasWrapAround());
     	for (PlayerVariable var : forAll()) {
-    		sign.setText(var.getTicker().current(), var.getPlayer());
+    		sign.setText(var.getTicker().current(), var.getTicker().isTicking(), var.getPlayer());
     	}
 	}
 
@@ -227,18 +227,16 @@ public class Variable implements VariableValue {
 		}
 	}
 
-	/**
-	 * Updates all the signs
-	 */
+	@Override
 	public void updateAll() {
 		for (LinkedSign sign : getSigns()) {
 			update(sign);
 		}
 	}
 
-	void setSigns(String value, String[] playernames) {
+	void setSigns(String value, boolean wrapAround, String[] playernames) {
 		for (LinkedSign sign : getSigns()) {
-			sign.setText(value, playernames);
+			sign.setText(value, wrapAround, playernames);
 		}
 	}
 
@@ -251,9 +249,9 @@ public class Variable implements VariableValue {
 		}
 		if (changed) this.updateAll();
 		//reset
-		this.defaultticker.checked = false;
+		this.defaultticker.checked.clear();
 		for (PlayerVariable pvar : this.forAll()) {
-			pvar.ticker.checked = false;
+			pvar.ticker.checked.clear();
 		}
 	}
 

@@ -12,7 +12,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.material.Directional;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class VirtualSign extends VirtualSignStore {
@@ -147,15 +149,13 @@ public class VirtualSign extends VirtualSignStore {
 		return MaterialUtil.ISSIGN.get(getBlock()) && this.sign.getLines() != null;
 	}
 	public boolean isInRange(Player player) {
-		return isInRange(player.getLocation());
-	}
-	public boolean isInRange(Location loc) {
-		if (loc.getWorld() != this.getWorld()) return false;
-		int dx = (int) Math.abs(loc.getX() - getX());
-		int dy = (int) Math.abs(loc.getY() - getY());
-		int dz = (int) Math.abs(loc.getZ() - getZ());
-		final int maxdistance = 60;
-		return dx < maxdistance && dy < maxdistance && dz < maxdistance;
+		if (!PlayerUtil.isChunkVisible(player, this.getChunkX(), this.getChunkZ())) {
+			return false;
+		}
+		if (player.getWorld() != this.getWorld()) {
+			return false;
+		}
+		return EntityUtil.isNearBlock(player, this.getX(), this.getZ(), 60);
 	}
 	
 	public String toString() {

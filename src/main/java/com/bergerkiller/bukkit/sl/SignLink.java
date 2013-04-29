@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.sl.API.GroupVariable;
 import com.bergerkiller.bukkit.sl.API.PlayerVariable;
 import com.bergerkiller.bukkit.sl.API.Ticker;
 import com.bergerkiller.bukkit.sl.API.Variable;
+import com.bergerkiller.bukkit.sl.API.VariableValue;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class SignLink extends PluginBase {
@@ -57,15 +58,16 @@ public class SignLink extends PluginBase {
 			for (ConfigurationNode forplayer : node.getNode("forPlayers").getNodes()) {
 				String value = forplayer.get("value", String.class, null);
 				PlayerVariable pvar = var.forPlayer(forplayer.getName());
-				if (value != null) pvar.set(value);
+				if (value != null) {
+					pvar.set(value);
+				}
 				pvar.getTicker().load(forplayer);
 			}
 		}
-	}	
+	}
 	public void saveValues() {
 		FileConfiguration values = new FileConfiguration(this, "values.yml");
 		for (Variable var : Variables.getAll()) {
-			if (var.isUsedByPlugin()) continue;
 			ConfigurationNode node = values.getNode(var.getName());
 			node.set("value", var.getDefault());
 			var.getDefaultTicker().save(node);
@@ -451,12 +453,13 @@ public class SignLink extends PluginBase {
 			}
 		} else if (cmdLabel.equalsIgnoreCase("setticker")) {
 			if (args.length >= 1) {
-				Ticker t;
+				VariableValue varValue;
 				if (var.global()) {
-					t = var.variable.getTicker();
+					varValue = var.variable;
 				} else {
-					t = var.group().getTicker();
+					varValue = var.group();
 				}
+				Ticker t = varValue.getTicker();
 				// Swap if reversed order
 				String intervalName = "";
 				String modeName = "";
@@ -480,7 +483,13 @@ public class SignLink extends PluginBase {
 				if (!intervalName.isEmpty()) {
 					t.interval = ParseUtil.parseLong(intervalName, t.interval);
 				}
-				sender.sendMessage(ChatColor.GREEN + "You set a '" + t.mode.toString().toLowerCase() + "' ticker ticking every " + t.interval + " ticks!");
+				t.reset(varValue.get());
+				varValue.updateAll();
+				if (!t.isTicking()) {
+					sender.sendMessage(ChatColor.GREEN + "Ticker is disabled");
+				} else {
+					sender.sendMessage(ChatColor.GREEN + "You set a '" + t.mode.toString().toLowerCase() + "' ticker ticking every " + t.interval + " ticks!");
+				}
 			} else {
 				sender.sendMessage(ChatColor.RED + "Please specify the ticker direction!");
 			}
