@@ -4,15 +4,11 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
+/**
+ * Event fired whenever a Variable (or for a player/group of players) changes value
+ */
 public class VariableChangeEvent extends Event implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
-    
 	private boolean cancelled = false;
 	private String newvalue;
 	private Variable variable;
@@ -52,4 +48,12 @@ public class VariableChangeEvent extends Event implements Cancellable {
 		this.cancelled = arg0;
 	}
 
+	@Override
+    public HandlerList getHandlers() {
+        return handlers;
+    }
+
+    public static HandlerList getHandlerList() {
+        return handlers;
+    }
 }

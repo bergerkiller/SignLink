@@ -13,6 +13,10 @@ import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
+/**
+ * Maps all Virtual Signs against the block location of the respective sign.
+ * This allows storing, obtaining and global management of Virtual Signs.
+ */
 public class VirtualSignStore {
 	private static BlockMap<VirtualSign> virtualSigns;
 
@@ -128,7 +132,7 @@ public class VirtualSignStore {
 			return;
 		}
 		for (VirtualSign sign : virtualSigns.values()) {
-			sign.update(forplayer);
+			sign.sendCurrentLines(forplayer);
 		}
 	}
 

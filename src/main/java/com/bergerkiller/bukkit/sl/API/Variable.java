@@ -12,6 +12,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.sl.LinkedSign;
 import com.bergerkiller.bukkit.sl.SignDirection;
@@ -96,16 +97,14 @@ public class Variable implements VariableValue {
 		if (value == null) {
 			value = "%" + this.name + "%";
 		}
-		//is a change required?
-		if (this.defaultvalue.equals(value)) {
-			if (this.playervariables.isEmpty()) {
-				return;
-			}
+		// Is a change required?
+		if (this.defaultvalue.equals(value) && this.playervariables.isEmpty()) {
+			return;
 		}
 
+		// Fire the event, and update the text
 		VariableChangeEvent event = new VariableChangeEvent(this, value, null, VariableChangeType.GLOBAL);
-		Bukkit.getServer().getPluginManager().callEvent(event);
-		if (!event.isCancelled()) {
+		if (!CommonUtil.callEvent(event).isCancelled()) {
 			this.defaultvalue = event.getNewValue();
 			this.defaultticker.reset(this.defaultvalue);
 			this.playervariables.clear();
@@ -192,15 +191,6 @@ public class Variable implements VariableValue {
 	}
 
 	/**
-	 * Checks whether this Variable is part of SignLink
-	 * 
-	 * @return True if it is part of SignLink, False if not
-	 */
-	public boolean isUsedByPlugin() {
-		return Variables.isUsedByPlugin(this.name);
-	}
-
-	/**
 	 * Updates a single sign
 	 * 
 	 * @param sign to update
@@ -241,14 +231,14 @@ public class Variable implements VariableValue {
 	}
 
 	void updateTickers() {
-		//update
+		// Update
 		boolean changed = false;
 		changed |= this.defaultticker.update();
 		for (PlayerVariable pvar : this.forAll()) {
 			changed |= pvar.ticker.update();
 		}
 		if (changed) this.updateAll();
-		//reset
+		// Reset
 		this.defaultticker.checked.clear();
 		for (PlayerVariable pvar : this.forAll()) {
 			pvar.ticker.checked.clear();
@@ -265,7 +255,7 @@ public class Variable implements VariableValue {
 	}
 
 	/**
-	 * Updates the sign block order of all signs near a block that display this Variable
+	 * Updates the sign block order of all signs near a block that displays this Variable
 	 * 
 	 * @param near block
 	 */
@@ -313,17 +303,18 @@ public class Variable implements VariableValue {
 	/**
 	 * Gets all the signs on a block on which this Variable is displayed
 	 * 
-	 * @param on which it is displayed
+	 * @param onBlock which it is displayed
 	 * @return signs
 	 */
-	public LinkedSign[] getSigns(Block on) {
-		ArrayList<LinkedSign> signs = new ArrayList<LinkedSign>();
-		if (on != null) {
-			for (LinkedSign sign : boundTo) {
-				Location l = sign.getStartLocation();
-				if (l != null && l.equals(on.getLocation())) {
-					signs.add(sign);
-				}
+	public LinkedSign[] getSigns(Block onBlock) {
+		if (onBlock == null || boundTo.isEmpty()) {
+			return new LinkedSign[0];
+		}
+		ArrayList<LinkedSign> signs = new ArrayList<LinkedSign>(boundTo.size());
+		for (LinkedSign sign : boundTo) {
+			Block block = sign.getStartBlock();
+			if (block != null && block.equals(onBlock)) {
+				signs.add(sign);
 			}
 		}
 		return signs.toArray(new LinkedSign[0]);

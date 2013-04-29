@@ -4,7 +4,6 @@ package com.bergerkiller.bukkit.sl.API;
  * Contains the basic variable changing methods for changing a Variable value
  */
 public interface VariableValue {
-
 	/**
 	 * Gets the Variable assigned in the back-end to handle the value changes
 	 * 

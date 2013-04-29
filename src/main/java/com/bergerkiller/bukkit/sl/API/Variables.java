@@ -12,28 +12,16 @@ import org.bukkit.block.Block;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.LinkedSign;
 import com.bergerkiller.bukkit.sl.SignLink;
-import com.bergerkiller.bukkit.sl.Util;
 import com.bergerkiller.bukkit.sl.VirtualSign;
 
+/**
+ * Stores all Variables available
+ */
 public class Variables {
 	private static HashMap<String, Variable> variables = new HashMap<String, Variable>();
 
 	public static synchronized void deinit() {
 		variables.clear();
-	}
-
-	/**
-	 * Checks whether a certain variable name is in use by SignLink
-	 * 
-	 * @param name to check
-	 * @return True if it is part of SignLink, False if not
-	 */
-	public static boolean isUsedByPlugin(String name) {
-		if (name.equalsIgnoreCase("time")) return true;
-		if (name.equalsIgnoreCase("date")) return true;
-		if (name.equalsIgnoreCase("playername")) return true;
-		if (name.equalsIgnoreCase("tps")) return true;
-		return false;
 	}
 
 	/**
@@ -44,7 +32,7 @@ public class Variables {
 			var.updateTickers();
 		}
 	}
-	
+
 	/**
 	 * Gets all the variables on the server.
 	 * @deprecated: This method is not thread-safe.
@@ -141,7 +129,7 @@ public class Variables {
 	 * @return The Variable, or null if there is none
 	 */
 	public static synchronized Variable get(VirtualSign sign, int line) {
-		return get(Util.getVarName(sign.getRealLine(line)));
+		return get(parseVariableName(sign.getRealLine(line)));
 	}
 
 	/**
@@ -195,5 +183,43 @@ public class Variables {
 			}
 		}
 		return found;
+	}
+
+	/**
+	 * Parses the Variable name from a line of text (on a sign).
+	 * The name before, after or in between '%'-signs is obtained.
+	 * 
+	 * @param line to parse
+	 * @return variable name displayed on this line
+	 */
+	public static String parseVariableName(String line) {
+		int perstart = line.indexOf("%");
+		if (perstart != -1) {
+			int perend = line.lastIndexOf("%");
+			final String varname;
+			if (perend == perstart) {
+				//left or right...
+				if (perstart == 0) {
+					//R
+					varname = line.substring(1);
+				} else if (perstart == line.length() - 1) {
+					//L
+					varname = line.substring(0, line.length() - 1);
+				} else if (line.substring(perstart).contains(" ")) {
+					//L
+					varname = line.substring(0, perstart);
+				} else {
+					//R
+					varname = line.substring(perstart + 1);
+				}
+			} else {
+				//Get in between the two %
+				varname = line.substring(perstart + 1, perend);
+			}
+			if (!varname.isEmpty() && !varname.contains(" ")) {
+				return varname;
+			}
+		}
+		return null;
 	}
 }

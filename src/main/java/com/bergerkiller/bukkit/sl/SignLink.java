@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
@@ -17,6 +18,8 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.metrics.MyDependingPluginsGraph;
+import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
@@ -34,64 +37,21 @@ public class SignLink extends PluginBase {
 	public static boolean usePermissions = false;
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
+	private Task updatetask;
+	private Task timetask;
 
 	@Override
 	public int getMinimumLibVersion() {
 		return Common.VERSION;
 	}
 
-	public void loadValues() {
-		FileConfiguration values = new FileConfiguration(this, "values.yml");
-		if (!values.exists()) {			
-			values.set("test.ticker", "LEFT");
-			values.set("test.tickerInterval", 3);
-			values.set("test.value", "This is a test message being ticked from right to left. ");
-			values.set("sign.ticker", "NONE");
-			values.set("sign.value", "This is a regular message you can set and is updated only once.");
-			values.save();
-		}
-		values.load();
-		for (ConfigurationNode node : values.getNodes()) {
-			Variable var = Variables.get(node.getName());
-			var.setDefault(node.get("value", "%" + var.getName() + "%"));
-			var.getDefaultTicker().load(node);
-			for (ConfigurationNode forplayer : node.getNode("forPlayers").getNodes()) {
-				String value = forplayer.get("value", String.class, null);
-				PlayerVariable pvar = var.forPlayer(forplayer.getName());
-				if (value != null) {
-					pvar.set(value);
-				}
-				pvar.getTicker().load(forplayer);
-			}
-		}
-	}
-	public void saveValues() {
-		FileConfiguration values = new FileConfiguration(this, "values.yml");
-		for (Variable var : Variables.getAll()) {
-			ConfigurationNode node = values.getNode(var.getName());
-			node.set("value", var.getDefault());
-			var.getDefaultTicker().save(node);
-			for (PlayerVariable pvar : var.forAll()) {
-				ConfigurationNode forplayer = node.getNode("forPlayers").getNode(pvar.getPlayer());
-				forplayer.set("value", pvar.get());
-				if (!pvar.isTickerShared()) {
-					pvar.getTicker().save(forplayer);
-				}
-			}
-		}
-		values.save();
-	}
-		
-	public void updatePlayerName(Player p) {
-		Variables.get("playername").forPlayer(p).set(p.getName());
-	}
-
 	@Override
 	public void enable() {
 		plugin = this;
-		this.register(SLListener.class);
+		final SLListener listener = new SLListener();
+		this.register((Listener) listener);
+		this.register((PacketListener) listener, PacketType.UPDATE_SIGN);
 		this.register("togglesignupdate", "reloadsignlink", "variable");
-		this.register(new SLPacketListener(), PacketType.UPDATE_SIGN);
 
 		FileConfiguration config = new FileConfiguration(this);
 		config.load();
@@ -174,10 +134,12 @@ public class SignLink extends PluginBase {
 		}.start(1, 1);
 
 		updateSigns = true;
-	}
 
-	private Task updatetask;
-	private Task timetask;
+		// Metrics
+		if (this.hasMetrics()) {
+			this.getMetrics().addGraph(new MyDependingPluginsGraph());
+		}
+	}
 
 	@Override
 	public void disable() {
@@ -208,6 +170,54 @@ public class SignLink extends PluginBase {
 
 		Variables.deinit();
 		VirtualSign.deinit();
+	}
+
+	public void loadValues() {
+		FileConfiguration values = new FileConfiguration(this, "values.yml");
+		if (!values.exists()) {			
+			values.set("test.ticker", "LEFT");
+			values.set("test.tickerInterval", 3);
+			values.set("test.value", "This is a test message being ticked from right to left. ");
+			values.set("sign.ticker", "NONE");
+			values.set("sign.value", "This is a regular message you can set and is updated only once.");
+			values.save();
+		}
+		values.load();
+		for (ConfigurationNode node : values.getNodes()) {
+			Variable var = Variables.get(node.getName());
+			var.setDefault(node.get("value", "%" + var.getName() + "%"));
+			var.getDefaultTicker().load(node);
+			for (ConfigurationNode forplayer : node.getNode("forPlayers").getNodes()) {
+				String value = forplayer.get("value", String.class, null);
+				PlayerVariable pvar = var.forPlayer(forplayer.getName());
+				if (value != null) {
+					pvar.set(value);
+				}
+				pvar.getTicker().load(forplayer);
+			}
+		}
+	}
+
+	public void saveValues() {
+		FileConfiguration values = new FileConfiguration(this, "values.yml");
+		for (Variable var : Variables.getAll()) {
+			ConfigurationNode node = values.getNode(var.getName());
+			node.set("value", var.getDefault());
+			var.getDefaultTicker().save(node);
+			for (PlayerVariable pvar : var.forAll()) {
+				ConfigurationNode forplayer = node.getNode("forPlayers").getNode(pvar.getPlayer());
+				forplayer.set("value", pvar.get());
+				if (!pvar.isTickerShared()) {
+					pvar.getTicker().save(forplayer);
+				}
+			}
+		}
+		values.save();
+	}
+
+	@Override
+	public void permissions() {
+		this.loadPermissions(Permission.class);
 	}
 
 	private class VariableEdit {
@@ -308,7 +318,7 @@ public class SignLink extends PluginBase {
 				Iterator<Variable> var = allVars.iterator();
 				while (var.hasNext()) {
 					Variable next = var.next();
-					if (next.isUsedByPlugin() || next.getSigns().length > 0) {
+					if (next.getSigns().length > 0) {
 						var.remove();
 					}
 				}
@@ -498,10 +508,5 @@ public class SignLink extends PluginBase {
 			sender.sendMessage(ChatColor.YELLOW + "Use /help variable for command help");
 		}
  		return true;
-	}
-
-	@Override
-	public void permissions() {
-		this.loadPermissions(Permission.class);
 	}
 }

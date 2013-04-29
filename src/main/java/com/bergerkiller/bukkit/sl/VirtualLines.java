@@ -6,52 +6,50 @@ import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 
 public class VirtualLines {
-	private String[] lines;
+	public static final int MAX_LINE_LENGTH = 15;
+	public static final int LINE_COUNT = 4;
+	private final String[] lines = new String[LINE_COUNT];
 	private boolean changed = false;
-	
+
 	public VirtualLines(String[] lines) {
-		this.lines = new String[4];
-		for (int i = 0; i < 4; i++) {
-			this.lines[i] = lines[i];
-		}
+		System.arraycopy(lines, 0, this.lines, 0, LINE_COUNT);
 	}
-	
+
 	public void set(int index, String value) {
-		if (this.changed || !this.lines[index].equals(value)) {
+		if (value.length() > MAX_LINE_LENGTH) {
+			value = value.substring(0, MAX_LINE_LENGTH);
+		}
+		if (!this.lines[index].equals(value)) {
 			this.changed = true;
 			this.lines[index] = value;
 		}
 	}
+
 	public String get(int index) {
 		return lines[index];
 	}
+
 	public String[] get() {
 		return this.lines;
 	}
-	
+
 	public boolean hasChanged() {
 		return this.changed;
 	}
+
 	public void setChanged() {
 		setChanged(true);
 	}
+
 	public void setChanged(boolean changed) {
 		this.changed = changed;
 	}
 
 	public void updateSign(Player player, int x, int y, int z) {
 		if (SignLink.updateSigns && player != null) {
-			String[] lines = new String[4];
-			for (int i = 0; i < 4; i++) {
-				if (this.lines[i].length() > 15) {
-					lines[i] = this.lines[i].substring(0, 15);
-				} else {
-					lines[i] = this.lines[i];
-				}
-			}
-			SLPacketListener.ignore = true;
-			PacketUtil.sendPacket(player, PacketFields.UPDATE_SIGN.newInstance(x, y, z, lines));
-			SLPacketListener.ignore = false;
+			SLListener.ignore = true;
+			PacketUtil.sendPacket(player, PacketFields.UPDATE_SIGN.newInstance(x, y, z, this.lines));
+			SLListener.ignore = false;
 		}
 	}
 }
