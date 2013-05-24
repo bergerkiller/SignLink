@@ -79,6 +79,8 @@ public class SignLink extends PluginBase {
 		//Load sign locations from file
 		config = new FileConfiguration(this, "linkedsigns.yml");
 		config.load();
+		// Initialize the linked signs, disable updates while doing so to avoid unneeded text processing
+		updateSigns = false;
 		for (String node : config.getKeys()) {
 			Variable currvar = Variables.get(node);
 			for (String textline : config.getList(node, String.class)) {
@@ -101,6 +103,7 @@ public class SignLink extends PluginBase {
 				}
 			}
 		}
+		updateSigns = true;
 
 		//General %time% and %date% update thread
 		timetask = new Task(this) {
@@ -132,8 +135,6 @@ public class SignLink extends PluginBase {
 				}
 			}
 		}.start(1, 1);
-
-		updateSigns = true;
 
 		// Metrics
 		if (this.hasMetrics()) {

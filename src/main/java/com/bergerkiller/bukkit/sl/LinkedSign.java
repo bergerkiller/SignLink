@@ -71,7 +71,7 @@ public class LinkedSign {
 		return this.oldtext;
 	}
 
-	public void setText(String value, boolean wrapAround, String... forplayers) {	
+	public void setText(String value, boolean wrapAround, String... forplayers) {
 		oldtext = value;
 		if (!SignLink.updateSigns) {
 			return; 
