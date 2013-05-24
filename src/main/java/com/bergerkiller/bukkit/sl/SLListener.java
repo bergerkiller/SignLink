@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,6 +21,7 @@ import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
@@ -62,7 +64,10 @@ public class SLListener implements Listener, PacketListener {
 					return;
 				}
 				if (!VirtualSign.exists(event.getBlock())) {
-					VirtualSign.add(event.getBlock(), event.getLines());
+					Sign sign = BlockUtil.getSign(event.getBlock());
+					if (sign != null) {
+						VirtualSign.add(sign, event.getLines());
+					}
 				}
 				Variables.updateSignOrder(event.getBlock());
 			}

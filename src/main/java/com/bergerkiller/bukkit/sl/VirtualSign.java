@@ -30,8 +30,11 @@ public class VirtualSign extends VirtualSignStore {
 	private boolean wasUnloaded = false;
 	private int signcheckcounter = 0;
 
-	protected VirtualSign(Block signBlock, String[] lines) {
-		this.sign = BlockUtil.getSign(signBlock);
+	protected VirtualSign(Sign sign, String[] lines) {
+		if (sign == null) {
+			throw new IllegalArgumentException("Can not use a NULL Sign as base for a Virtual Sign");
+		}
+		this.sign = sign;
 		if (lines == null || lines.length < VirtualLines.LINE_COUNT) {
 		    lines = this.sign.getLines();
 		}
@@ -195,6 +198,10 @@ public class VirtualSign extends VirtualSignStore {
 				return;
 			}
 			this.sign = BlockUtil.getSign(b);
+			if (this.sign == null) {
+				remove(b);
+				return;
+			}
 			wasUnloaded = false;
 		}
 
