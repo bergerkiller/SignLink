@@ -5,12 +5,11 @@ import java.util.Iterator;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockMap;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
@@ -31,17 +30,18 @@ public class VirtualSignStore {
 		virtualSigns = new BlockMap<VirtualSign>();
 	}
 
-	public static synchronized VirtualSign add(Sign sign, String[] lines) {
+	public static synchronized VirtualSign add(Block block, String[] lines) {
 		if (virtualSigns == null) {
 			return null;
 		}
-		VirtualSign vsign = new VirtualSign(sign, lines);
-		virtualSigns.put(sign.getBlock(), vsign);
+		BlockLocation loc = new BlockLocation(block);
+		VirtualSign vsign = new VirtualSign(loc, lines);
+		virtualSigns.put(loc, vsign);
 		return vsign;
 	}
 
-	public static VirtualSign add(Sign sign) {
-		return add(sign, null);
+	public static VirtualSign add(Block signBlock) {
+		return add(signBlock, null);
 	}
 
 	public static synchronized VirtualSign get(Location at) {
@@ -70,10 +70,7 @@ public class VirtualSignStore {
 		if (MaterialUtil.ISSIGN.get(b)) {
 			VirtualSign sign = virtualSigns.get(b);
 			if (sign == null || !sign.isValid()) {
-				Sign signState = BlockUtil.getSign(b);
-				if (signState != null) {
-					sign = add(signState);
-				}
+				sign = add(b);
 			}
 			return sign;
 		} else {

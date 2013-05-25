@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.sl;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,6 +15,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
@@ -21,14 +24,16 @@ import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.sl.API.Variable;
 import com.bergerkiller.bukkit.sl.API.Variables;
 
 public class SLListener implements Listener, PacketListener {
 	protected static boolean ignore = false;
+	private final List<Variable> variableBuffer = new ArrayList<Variable>();
+	private final List<LinkedSign> linkedSignBuffer = new ArrayList<LinkedSign>();
 
 	@Override
 	public void onPacketReceive(PacketReceiveEvent event) {
@@ -64,10 +69,7 @@ public class SLListener implements Listener, PacketListener {
 					return;
 				}
 				if (!VirtualSign.exists(event.getBlock())) {
-					Sign sign = BlockUtil.getSign(event.getBlock());
-					if (sign != null) {
-						VirtualSign.add(sign, event.getLines());
-					}
+					VirtualSign.add(event.getBlock(), event.getLines());
 				}
 				Variables.updateSignOrder(event.getBlock());
 			}
@@ -104,6 +106,31 @@ public class SLListener implements Listener, PacketListener {
 			message.append("variables: ").yellow(StringUtil.combine(" ", varnames));
 		}
 		message.send(event.getPlayer());
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onChunkLoad(ChunkLoadEvent event) {
+		try {
+			for (BlockState state : WorldUtil.getBlockStates(event.getChunk())) {
+				if (state instanceof Sign) {
+					// Fill with variables
+					if (!Variables.find(linkedSignBuffer, variableBuffer, state.getBlock())) {
+						continue;
+					}
+				}
+			}
+			// Size check
+			if (variableBuffer.size() != linkedSignBuffer.size()) {
+				throw new RuntimeException("Variable find method signature is invalid: linked sign count != variable count");
+			}
+			// Update all the linked signs using the respective variables
+			for (int i = 0; i < variableBuffer.size(); i++) {
+				variableBuffer.get(i).update(linkedSignBuffer.get(i));
+			}
+		} finally {
+			variableBuffer.clear();
+			linkedSignBuffer.clear();
+		}
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

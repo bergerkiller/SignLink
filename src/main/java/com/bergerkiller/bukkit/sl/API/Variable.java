@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -397,15 +398,11 @@ public class Variable implements VariableValue {
 		return false;
 	}
 
-	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
-		return find(signs, variables, at.getLocation());
-	}
-
-	public boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
+	public boolean find(List<LinkedSign> signs, List<Variable> variables, Block at) {
 		boolean found = false;
 		for (LinkedSign sign : boundTo) {
-			if (sign.location.x == at.getBlockX() && sign.location.y == at.getBlockY() && sign.location.z == at.getBlockZ()) {
-				if (sign.location.world == at.getWorld().getName()) {
+			if (sign.location.x == at.getX() && sign.location.y == at.getY() && sign.location.z == at.getZ()) {
+				if (sign.location.world.equals(at.getWorld().getName())) {
 					found = true;
 					if (signs != null) signs.add(sign);
 					if (variables != null) variables.add(this);
@@ -413,6 +410,10 @@ public class Variable implements VariableValue {
 			}
 		}
 		return found;
+	}
+
+	public boolean find(List<LinkedSign> signs, List<Variable> variables, Location at) {
+		return find(signs, variables, at.getBlock());
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.sl;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -9,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -22,6 +24,7 @@ import com.bergerkiller.bukkit.sl.API.Variables;
  * It takes care of per-player text and text updating in general.
  */
 public class VirtualSign extends VirtualSignStore {
+	private final BlockLocation location;
 	private Sign sign;
 	private final String[] oldlines;
 	private final HashMap<String, VirtualLines> playerlines = new HashMap<String, VirtualLines>();
@@ -30,13 +33,22 @@ public class VirtualSign extends VirtualSignStore {
 	private boolean wasUnloaded = false;
 	private int signcheckcounter = 0;
 
-	protected VirtualSign(Sign sign, String[] lines) {
-		if (sign == null) {
-			throw new IllegalArgumentException("Can not use a NULL Sign as base for a Virtual Sign");
-		}
-		this.sign = sign;
+	protected VirtualSign(BlockLocation location, String[] lines) {
+		this.location = location;
+		this.wasUnloaded = !this.location.isLoaded();
 		if (lines == null || lines.length < VirtualLines.LINE_COUNT) {
-		    lines = this.sign.getLines();
+			if (!this.wasUnloaded) {
+				this.sign = BlockUtil.getSign(location.getBlock());
+				if (this.sign == null) {
+					this.wasUnloaded = true;
+				}
+			}
+			if (this.sign == null) {
+				lines = new String[VirtualLines.LINE_COUNT];
+				Arrays.fill(lines, "");
+			} else {
+				lines = this.sign.getLines();
+			}
 		}
 		this.oldlines = LogicUtil.cloneArray(lines);
 		this.defaultlines = new VirtualLines(lines);
@@ -129,19 +141,19 @@ public class VirtualSign extends VirtualSignStore {
 	}
 
 	public World getWorld() {
-		return this.sign.getWorld();
+		return this.location.getWorld();
 	}
 
 	public int getX() {
-		return this.sign.getX();
+		return this.location.x;
 	}
 
 	public int getY() {
-		return this.sign.getY();
+		return this.location.y;
 	}
 
 	public int getZ() {
-		return this.sign.getZ();
+		return this.location.z;
 	}
 
 	public int getChunkX() {
@@ -153,15 +165,15 @@ public class VirtualSign extends VirtualSignStore {
 	}
 
 	public Block getBlock() {
-		return this.sign.getBlock();
+		return this.location.getBlock();
 	}
 
 	public Location getLocation() {
-		return new Location(getWorld(), getX(), getY(), getZ());
+		return this.location.getLocation();
 	}
 
 	public boolean isLoaded() {
-		return getWorld().isChunkLoaded(getChunkX(), getChunkZ());
+		return this.location.isLoaded();
 	}
 
 	public boolean isValid() {
@@ -190,6 +202,7 @@ public class VirtualSign extends VirtualSignStore {
 		// Check whether the area this sign is at, is loaded
 		if (!this.isLoaded()) {
 			wasUnloaded = true;
+			this.sign = null;
 			return;
 		} else if (wasUnloaded) {
 			Block b = this.getBlock();

@@ -171,11 +171,18 @@ public class Variables {
 		return VirtualSign.remove(signblock);
 	}
 
-	public static synchronized boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Block at) {
-		return find(signs, variables, at.getLocation());
-	}
-
-	public static synchronized boolean find(ArrayList<LinkedSign> signs, ArrayList<Variable> variables, Location at) {
+	/**
+	 * Attempts to find all linked signs and variables for a given Block.
+	 * The amount of signs and variables returned are the same, and match each other.
+	 * Multiple variables could be contained in the List.
+	 * The Linked Sign at signs index X shows the Variable at variables index X.
+	 * 
+	 * @param signs to fill with results (null to ignore)
+	 * @param variables to fill with results (null to ignore)
+	 * @param at Block to find
+	 * @return True if something was found, False if not
+	 */
+	public static synchronized boolean find(List<LinkedSign> signs, List<Variable> variables, Block at) {
 		boolean found = false;
 		for (Variable var : all()) {
 			if (var.find(signs, variables, at)) {
@@ -183,6 +190,21 @@ public class Variables {
 			}
 		}
 		return found;
+	}
+
+	/**
+	 * Attempts to find all linked signs and variables for a given Block.
+	 * The amount of signs and variables returned are the same, and match each other.
+	 * Multiple variables could be contained in the List.
+	 * The Linked Sign at signs index X shows the Variable at variables index X.
+	 * 
+	 * @param signs to fill with results (null to ignore)
+	 * @param variables to fill with results (null to ignore)
+	 * @param at Block Location to find
+	 * @return True if something was found, False if not
+	 */
+	public static synchronized boolean find(List<LinkedSign> signs, List<Variable> variables, Location at) {
+		return find(signs, variables, at.getBlock());
 	}
 
 	/**
