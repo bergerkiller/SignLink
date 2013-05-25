@@ -69,7 +69,7 @@ public class VirtualSignStore {
 		}
 		if (MaterialUtil.ISSIGN.get(b)) {
 			VirtualSign sign = virtualSigns.get(b);
-			if (sign == null || !sign.isValid()) {
+			if (sign == null || !sign.validate()) {
 				sign = add(b);
 			}
 			return sign;

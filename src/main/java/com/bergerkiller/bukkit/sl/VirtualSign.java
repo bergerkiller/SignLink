@@ -11,6 +11,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
+import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.LogicUtil;
@@ -30,17 +31,17 @@ public class VirtualSign extends VirtualSignStore {
 	private final HashMap<String, VirtualLines> playerlines = new HashMap<String, VirtualLines>();
 	private final VirtualLines defaultlines;
 	private HashSet<VirtualLines> outofrange = new HashSet<VirtualLines>();
-	private boolean wasUnloaded = false;
+	private final ToggledState unloaded = new ToggledState(false);
 	private int signcheckcounter = 0;
 
 	protected VirtualSign(BlockLocation location, String[] lines) {
 		this.location = location;
-		this.wasUnloaded = !this.location.isLoaded();
+		this.unloaded.set(!this.location.isLoaded());
 		if (lines == null || lines.length < VirtualLines.LINE_COUNT) {
-			if (!this.wasUnloaded) {
+			if (!this.unloaded.get()) {
 				this.sign = BlockUtil.getSign(location.getBlock());
 				if (this.sign == null) {
-					this.wasUnloaded = true;
+					this.unloaded.set();
 				}
 			}
 			if (this.sign == null) {
@@ -176,8 +177,30 @@ public class VirtualSign extends VirtualSignStore {
 		return this.location.isLoaded();
 	}
 
-	public boolean isValid() {
-		return MaterialUtil.ISSIGN.get(getBlock()) && this.sign.getLines() != null;
+	/**
+	 * Performs a Sign validation check to see whether this Virtual Sign is still valid (a Sign block).
+	 * If the validation fails, this Sign is removed and False is returned.
+	 * 
+	 * @return True if the sign is valid, False if not
+	 */
+	public boolean validate() {
+		if (this.unloaded.get()) {
+			// Unloaded: until loaded we consider it to be valid
+			return true;
+		}
+		final Block block = this.getBlock();
+		if (!MaterialUtil.ISSIGN.get(block)) {
+			this.remove();
+			return false;
+		}
+		if (this.sign == null) {
+			this.sign = BlockUtil.getSign(this.getBlock());
+		}
+		if (this.sign == null || this.sign.getLines() == null) {
+			this.remove();
+			return false;
+		}
+		return true;
 	}
 
 	public boolean isInRange(Player player) {
@@ -201,26 +224,16 @@ public class VirtualSign extends VirtualSignStore {
 	public void update() {
 		// Check whether the area this sign is at, is loaded
 		if (!this.isLoaded()) {
-			wasUnloaded = true;
+			this.unloaded.set();
 			this.sign = null;
 			return;
-		} else if (wasUnloaded) {
-			Block b = this.getBlock();
-			if (!MaterialUtil.ISSIGN.get(b)) {
-				this.remove();
-				return;
-			}
-			this.sign = BlockUtil.getSign(b);
-			if (this.sign == null) {
-				remove(b);
-				return;
-			}
-			wasUnloaded = false;
+		} else if (this.unloaded.clear()) {
+			// Clear sign, the isValid check coming up next will re-obtain the Sign
+			this.sign = null;
 		}
 
 		// Sanity check: is this sign still there?
-		if (!this.isValid()) {
-			this.remove();
+		if (!this.validate()) {
 			return;
 		} else {
 			//update the sign if needed (just in case the tile got swapped or destroyed?)

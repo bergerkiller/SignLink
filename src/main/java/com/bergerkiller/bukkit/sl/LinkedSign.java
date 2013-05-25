@@ -269,8 +269,7 @@ public class LinkedSign {
 	private boolean validateSigns() {
 		if (!this.displaySigns.isEmpty()) {
 			for (VirtualSign sign : this.displaySigns) {
-				if (!sign.isValid()) {
-					sign.remove();
+				if (!sign.validate()) {
 					return false;
 				}
 			}
