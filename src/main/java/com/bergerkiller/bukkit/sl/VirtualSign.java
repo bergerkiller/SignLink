@@ -130,11 +130,19 @@ public class VirtualSign extends VirtualSignStore {
 	}
 
 	public String[] getRealLines() {
-		return this.sign.getLines();
+		if (this.sign == null) {
+			return this.oldlines;
+		} else {
+			return this.sign.getLines();
+		}
 	}
 
 	public String getRealLine(int index) {
-		return this.sign.getLine(index);
+		if (this.sign == null) {
+			return this.oldlines[index];
+		} else {
+			return this.sign.getLine(index);
+		}
 	}
 
 	public void setRealLine(int index, String line) {
@@ -174,7 +182,7 @@ public class VirtualSign extends VirtualSignStore {
 	}
 
 	public boolean isLoaded() {
-		return this.location.isLoaded();
+		return !this.unloaded.get();
 	}
 
 	/**
@@ -219,18 +227,27 @@ public class VirtualSign extends VirtualSignStore {
 	}
 
 	/**
+	 * Loads or unloads this Sign
+	 * 
+	 * @param loaded state to set to
+	 */
+	public void setLoaded(boolean loaded) {
+		if (loaded) {
+			if (this.unloaded.clear()) {
+				this.sign = null;
+				this.validate();
+			}
+		} else if (this.unloaded.set()) {
+			this.sign = null;
+		}
+	}
+
+	/**
 	 * Updates all nearby players with the live text information
 	 */
 	public void update() {
 		// Check whether the area this sign is at, is loaded
-		if (!this.isLoaded()) {
-			this.unloaded.set();
-			this.sign = null;
-			return;
-		} else if (this.unloaded.clear()) {
-			// Clear sign, the isValid check coming up next will re-obtain the Sign
-			this.sign = null;
-		}
+		this.setLoaded(this.location.isLoaded());
 
 		// Sanity check: is this sign still there?
 		if (!this.validate()) {

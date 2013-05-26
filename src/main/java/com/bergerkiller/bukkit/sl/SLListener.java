@@ -113,10 +113,17 @@ public class SLListener implements Listener, PacketListener {
 		try {
 			for (BlockState state : WorldUtil.getBlockStates(event.getChunk())) {
 				if (state instanceof Sign) {
-					// Fill with variables
-					if (!Variables.find(linkedSignBuffer, variableBuffer, state.getBlock())) {
-						continue;
+					// Load the sign
+					VirtualSign sign = VirtualSign.get(state.getBlock());
+					if (sign != null) {
+						sign.setLoaded(true);
+						if (!sign.validate()) {
+							// This sign is no longer valid (for whatever reason)
+							continue;
+						}
 					}
+					// Fill with variables
+					Variables.find(linkedSignBuffer, variableBuffer, state.getBlock());
 				}
 			}
 			// Size check

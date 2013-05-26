@@ -80,6 +80,11 @@ public class LinkedSign {
 		if (signs.isEmpty()) {
 			return;
 		}
+		for (VirtualSign sign : signs) {
+			if (!sign.isLoaded()) {
+				return;
+			}
+		}
 
 		// If specified, wrap around the text so it fills all signs
 		if (wrapAround) {
