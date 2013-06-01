@@ -31,17 +31,17 @@ public class VirtualSign extends VirtualSignStore {
 	private final HashMap<String, VirtualLines> playerlines = new HashMap<String, VirtualLines>();
 	private final VirtualLines defaultlines;
 	private HashSet<VirtualLines> outofrange = new HashSet<VirtualLines>();
-	private final ToggledState unloaded = new ToggledState(false);
+	private final ToggledState loaded = new ToggledState(false);
 	private int signcheckcounter = 0;
 
 	protected VirtualSign(BlockLocation location, String[] lines) {
 		this.location = location;
-		this.unloaded.set(!this.location.isLoaded());
+		this.loaded.set(this.location.isLoaded());
 		if (lines == null || lines.length < VirtualLines.LINE_COUNT) {
-			if (!this.unloaded.get()) {
+			if (this.loaded.get()) {
 				this.sign = BlockUtil.getSign(location.getBlock());
 				if (this.sign == null) {
-					this.unloaded.set();
+					this.loaded.clear();
 				}
 			}
 			if (this.sign == null) {
@@ -182,7 +182,7 @@ public class VirtualSign extends VirtualSignStore {
 	}
 
 	public boolean isLoaded() {
-		return !this.unloaded.get();
+		return this.loaded.get();
 	}
 
 	/**
@@ -192,7 +192,7 @@ public class VirtualSign extends VirtualSignStore {
 	 * @return True if the sign is valid, False if not
 	 */
 	public boolean validate() {
-		if (this.unloaded.get()) {
+		if (!this.loaded.get()) {
 			// Unloaded: until loaded we consider it to be valid
 			return true;
 		}
@@ -233,11 +233,11 @@ public class VirtualSign extends VirtualSignStore {
 	 */
 	public void setLoaded(boolean loaded) {
 		if (loaded) {
-			if (this.unloaded.clear()) {
+			if (this.loaded.clear()) {
 				this.sign = null;
 				this.validate();
 			}
-		} else if (this.unloaded.set()) {
+		} else if (this.loaded.set()) {
 			this.sign = null;
 		}
 	}
@@ -248,20 +248,18 @@ public class VirtualSign extends VirtualSignStore {
 	public void update() {
 		// Check whether the area this sign is at, is loaded
 		this.setLoaded(this.location.isLoaded());
+		if (!this.isLoaded()) {
+			return;
+		}
+
+		// Refresh the Sign state now and then (just in case the tile got swapped or destroyed)
+		if (signcheckcounter++ % 20 == 0) {
+			this.sign = null;
+		}
 
 		// Sanity check: is this sign still there?
 		if (!this.validate()) {
 			return;
-		} else {
-			//update the sign if needed (just in case the tile got swapped or destroyed?)
-			if (signcheckcounter++ % 20 == 0) {
-				Block b = this.getBlock();
-				if (!MaterialUtil.ISSIGN.get(b)) {
-					this.remove();
-					return;
-				}
-				this.sign = BlockUtil.getSign(b);
-			}
 		}
 
 		// Real-time changes to the text (external cause)
