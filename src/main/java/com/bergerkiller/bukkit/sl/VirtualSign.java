@@ -233,11 +233,11 @@ public class VirtualSign extends VirtualSignStore {
 	 */
 	public void setLoaded(boolean loaded) {
 		if (loaded) {
-			if (this.loaded.clear()) {
+			if (this.loaded.set()) {
 				this.sign = null;
 				this.validate();
 			}
-		} else if (this.loaded.set()) {
+		} else if (this.loaded.clear()) {
 			this.sign = null;
 		}
 	}
