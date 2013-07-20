@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>SignLink</artifactId>
-  <version>1.33</version>
+  <version>1.34</version>
   <packaging>jar</packaging>
 
   <name>SignLink</name>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.51</version>
+      <version>1.54-SNAPSHOT</version>
   	</dependency>
     <dependency>
       <groupId>junit</groupId>
