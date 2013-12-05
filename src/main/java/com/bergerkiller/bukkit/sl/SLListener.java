@@ -21,7 +21,6 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -44,13 +43,13 @@ public class SLListener implements Listener, PacketListener {
 		if (ignore) {
 			return;
 		}
-		if (event.getType() == PacketType.UPDATE_SIGN) {
+		if (event.getType() == PacketType.OUT_UPDATE_SIGN) {
 			CommonPacket packet = event.getPacket();
-			Block block = PacketFields.UPDATE_SIGN.getBlock(packet.getHandle(), event.getPlayer().getWorld());
+			Block block = PacketType.OUT_UPDATE_SIGN.getBlock(packet.getHandle(), event.getPlayer().getWorld());
 			VirtualSign sign = VirtualSign.get(block);
 			if (sign != null) {
 				// Set the lines of the packet to the valid lines
-				packet.write(PacketFields.UPDATE_SIGN.lines, sign.getLines(event.getPlayer()).get());
+				packet.write(PacketType.OUT_UPDATE_SIGN.lines, sign.getLines(event.getPlayer()).get());
 			}
 		}
 	}
@@ -103,7 +102,7 @@ public class SLListener implements Listener, PacketListener {
 		if (varnames.size() == 1) {
 			message.append("variable: ").yellow(varnames.get(0));
 		} else {
-			message.append("variables: ").yellow(StringUtil.combine(" ", varnames));
+			message.append("variables: ").yellow(StringUtil.join(" ", varnames));
 		}
 		message.send(event.getPlayer());
 	}

@@ -50,7 +50,7 @@ public class SignLink extends PluginBase {
 		plugin = this;
 		final SLListener listener = new SLListener();
 		this.register((Listener) listener);
-		this.register((PacketListener) listener, PacketType.UPDATE_SIGN);
+		this.register((PacketListener) listener, PacketType.OUT_UPDATE_SIGN);
 		this.register("togglesignupdate", "reloadsignlink", "variable");
 
 		FileConfiguration config = new FileConfiguration(this);
@@ -395,7 +395,7 @@ public class SignLink extends PluginBase {
 				sender.sendMessage(ChatColor.YELLOW + "Current value is: " + ChatColor.BLACK + var.variable.get(var.players[0]));
 			}
 		} else if (cmdLabel.equalsIgnoreCase("setdefault") || cmdLabel.equalsIgnoreCase("setdef")) {
-			String value = StringUtil.ampToColor(StringUtil.combine(" ", args));
+			String value = StringUtil.ampToColor(StringUtil.join(" ", args));
 			var.variable.setDefault(value);
 			if (args.length == 0) {
 				sender.sendMessage(ChatColor.YELLOW + "Default variable value emptied!");
@@ -411,7 +411,7 @@ public class SignLink extends PluginBase {
 				}
 				sender.sendMessage(ChatColor.YELLOW + "Variable value emptied!");
 			} else {
-				String value = StringUtil.ampToColor(StringUtil.combine(" ", args));
+				String value = StringUtil.ampToColor(StringUtil.join(" ", args));
 				if (var.global()) {
 					var.variable.set(value);
 				} else {

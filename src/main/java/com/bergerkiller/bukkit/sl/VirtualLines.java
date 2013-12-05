@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.sl;
 
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 
 public class VirtualLines {
@@ -48,7 +48,7 @@ public class VirtualLines {
 	public void updateSign(Player player, int x, int y, int z) {
 		if (SignLink.updateSigns && player != null) {
 			SLListener.ignore = true;
-			PacketUtil.sendPacket(player, PacketFields.UPDATE_SIGN.newInstance(x, y, z, this.lines));
+			PacketUtil.sendPacket(player, PacketType.OUT_UPDATE_SIGN.newInstance(x, y, z, this.lines));
 			SLListener.ignore = false;
 		}
 	}
