@@ -1,7 +1,7 @@
 name: SignLink
 main: com.bergerkiller.bukkit.sl.SignLink
 version: ${project.version}
-author: bergerkiller
+author: [bergerkiller, lenis0012, timstans]
 metrics: true
 depend: [BKCommonLib]
 description: Plugin that manages the display of variables on signs in various ways
